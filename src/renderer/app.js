@@ -243,7 +243,14 @@ class VoiceDevApp {
     }
   }
 
-  updateProjectInfo(projectPath) {\n    this.currentProject = { path: projectPath };\n    const projectName = projectPath.split('/').pop().split('\\\\').pop();\n    this.projectInfo.innerHTML = `\n      <span class=\"project-name\">${projectName}</span>\n      <small>${projectPath}</small>\n    `;\n  }
+  updateProjectInfo(projectPath) {
+    this.currentProject = { path: projectPath };
+    const projectName = projectPath.split('/').pop().split('\\').pop();
+    this.projectInfo.innerHTML = `
+      <span class="project-name">${projectName}</span>
+      <small>${projectPath}</small>
+    `;
+  }
 
   renderFileTree(files, structure) {
     if (!files || files.length === 0) {
@@ -265,7 +272,38 @@ class VoiceDevApp {
     });
   }
 
-  buildFileTreeHtml(structure, basePath = '') {\n    let html = '';\n    \n    for (const [name, content] of Object.entries(structure)) {\n      // Use the project path as base and construct proper paths\n      const fullPath = basePath ? `${basePath}/${name}` : name;\n      \n      if (typeof content === 'object' && content.type === 'file') {\n        // Store the actual file path in data attribute\n        const actualPath = this.currentProject ? path.join(this.currentProject.path, fullPath).replace(/\\\\/g, '/') : fullPath;\n        html += `\n          <div class=\"file-item\" data-path=\"${actualPath}\">\n            <svg class=\"file-icon\" viewBox=\"0 0 24 24\" fill=\"none\">\n              <path d=\"M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z\" stroke=\"currentColor\" stroke-width=\"2\"/>\n            </svg>\n            <span>${name}</span>\n          </div>\n        `;\n      } else if (typeof content === 'object' && !content.type) {\n        html += `\n          <div class=\"folder-item\">\n            <svg class=\"file-icon\" viewBox=\"0 0 24 24\" fill=\"none\">\n              <path d=\"M3 7V5C3 3.89543 3.89543 3 5 3H9L11 5H19C20.1046 5 21 5.89543 21 7V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V7Z\" stroke=\"currentColor\" stroke-width=\"2\"/>\n            </svg>\n            <span>${name}</span>\n          </div>\n          <div class=\"folder-children\">\n            ${this.buildFileTreeHtml(content, fullPath)}\n          </div>\n        `;\n      }\n    }\n    \n    return html;\n  }
+  buildFileTreeHtml(structure, basePath = '') {
+    let html = '';
+    
+    for (const [name, content] of Object.entries(structure)) {
+      const fullPath = basePath ? `${basePath}/${name}` : name;
+      
+      if (typeof content === 'object' && content.type === 'file') {
+        html += `
+          <div class="file-item" data-path="${fullPath}">
+            <svg class="file-icon" viewBox="0 0 24 24" fill="none">
+              <path d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span>${name}</span>
+          </div>
+        `;
+      } else if (typeof content === 'object' && !content.type) {
+        html += `
+          <div class="folder-item">
+            <svg class="file-icon" viewBox="0 0 24 24" fill="none">
+              <path d="M3 7V5C3 3.89543 3.89543 3 5 3H9L11 5H19C20.1046 5 21 5.89543 21 7V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V7Z" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span>${name}</span>
+          </div>
+          <div class="folder-children">
+            ${this.buildFileTreeHtml(content, fullPath)}
+          </div>
+        `;
+      }
+    }
+    
+    return html;
+  }
 
   async openFileInEditor(filePath) {
     try {
