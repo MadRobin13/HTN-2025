@@ -1,8 +1,14 @@
-# Stratosphere - Interactive Solar System Promotional Site
+# Stratosphere Development Suite
+
+## Interactive Solar System Promotional Site
 
 A unique, immersive promotional website for Stratosphere featuring an interactive solar system with orbiting planets, smooth animations, and a rocket launch loading screen.
 
-## 🌟 Features
+## AI Development Assistant (Electron App)
+
+A sophisticated desktop application that combines voice interaction with AI-powered development capabilities, now featuring the same elegant Stratosphere design language.
+
+## 🌟 Promotional Site Features
 
 ### Interactive Solar System
 - **Realistic orbital mechanics**: Planets orbit at different speeds based on their distance from the sun
@@ -40,13 +46,43 @@ Each planet represents a key Stratosphere feature:
 - **Touch support**: Full mobile gesture support
 - **Keyboard navigation**: Complete accessibility via keyboard
 
+## 🤖 AI Assistant Features
+
+### Elegant Design Language
+- **Unified Branding**: Same black/white color palette and Stratosphere logo as the promotional site
+- **Cosmic Theme**: Subtle stars background animation for immersive experience  
+- **Clean Interface**: Function-focused design optimized for developer productivity
+- **Accessibility**: Full keyboard navigation and screen reader support
+
+### Development Capabilities
+- **Voice Interaction**: Hold-to-speak voice commands with visual feedback
+- **AI-Powered Assistance**: Integrated with Gemini AI for code generation and analysis
+- **Project Awareness**: Automatically understands your project structure and files
+- **Code Editor**: Built-in editor with syntax highlighting and file management
+- **Real-time Collaboration**: Chat interface with conversation history
+
+### Productivity Features
+- **File Tree Navigation**: Visual project structure with change tracking
+- **Multi-file Support**: Open and edit multiple files simultaneously
+- **Diff Viewer**: See code changes with side-by-side comparison
+- **Terminal Integration**: Built-in terminal panel for command execution
+- **Responsive Layout**: Adapts to different screen sizes and workflows
+
 ## 🚀 Quick Start
 
+### Promotional Site
 1. Open `index.html` in any modern web browser
 2. Watch the rocket launch loading sequence
 3. Explore planets by clicking or using number keys 1-8
 4. Press 'Info' in the navigation for controls guide
 5. Click 'Launch Stratosphere' to see the call-to-action modal
+
+### AI Assistant
+1. Install dependencies: `npm install`
+2. Set up your API keys in `.env` file
+3. Run the app: `npm start`
+4. Open a project folder to begin development
+5. Use voice or text to interact with the AI assistant
 
 ## 🎨 Design Philosophy
 

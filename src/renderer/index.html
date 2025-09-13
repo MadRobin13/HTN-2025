@@ -3,51 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Dev Assistant</title>
+    <title>Stratosphere - Project Management</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <div class="logo">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                    </svg>
-                    <span>Voice Dev Assistant</span>
+    <!-- Welcome Screen -->
+    <div id="welcomeScreen" class="welcome-screen">
+        <!-- Logo and Title -->
+        <div class="welcome-header">
+            <div class="logo">
+                <div class="logo-circle">
+                    <div class="logo-inner-circle"></div>
+                    <div class="logo-dot"></div>
+                </div>
+                <span class="logo-text">STRATOSPHERE</span>
+            </div>
+            <p class="welcome-subtitle">Launch your projects into orbit</p>
+        </div>
+
+        <!-- Main Actions -->
+        <div class="welcome-content">
+            <div class="action-cards">
+                <!-- New Project Card -->
+                <div class="action-card" id="newProjectCard">
+                    <div class="card-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                            <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2"/>
+                            <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3>New Project</h3>
+                    <p>Create a new project from scratch</p>
+                </div>
+
+                <!-- Open Existing Card -->
+                <div class="action-card" id="openProjectCard">
+                    <div class="card-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                            <path d="M3 7V5C3 3.89543 3.89543 3 5 3H9L11 5H19C20.1046 5 21 5.89543 21 7V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V7Z" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3>Open Project</h3>
+                    <p>Browse and open an existing project</p>
+                </div>
+
+                <!-- GitHub Clone Card -->
+                <div class="action-card" id="githubCloneCard">
+                    <div class="card-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                            <path d="M9 19C4 20.5 4 16.5 2 16M22 16V22C22 22 22 22 22 22H16C16 22 16 22 16 22V19.5C16 18.5 16.5 18 17 18H21C21.5 18 22 17.5 22 17V16Z" stroke="currentColor" stroke-width="2"/>
+                            <path d="M16 2.5C15.5 2 15 2 14 2H10C9 2 8.5 2 8 2.5L2 8.5V20C2 21 2 22 3 22H9" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </div>
+                    <h3>Clone from GitHub</h3>
+                    <p>Import a repository from GitHub</p>
                 </div>
             </div>
-            <div class="header-center">
-                <div class="project-info" id="projectInfo">
-                    <span class="project-name">No Project Selected</span>
+
+            <!-- Recent Projects -->
+            <div class="recent-projects">
+                <h4>Recent Projects</h4>
+                <div class="recent-list" id="recentList">
+                    <div class="empty-recent">
+                        <p>No recent projects yet</p>
+                        <small>Projects you open will appear here</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Project Form Modal -->
+    <div id="newProjectModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create New Project</h3>
+                <button class="close-modal" id="closeNewProjectModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="newProjectForm">
+                    <div class="form-group">
+                        <label for="projectName">Project Name</label>
+                        <input type="text" id="projectName" placeholder="My Awesome Project" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="projectPath">Location</label>
+                        <div class="input-with-button">
+                            <input type="text" id="projectPath" placeholder="Choose folder..." readonly required>
+                            <button type="button" id="browseProjectPath">Browse</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="projectType">Project Type</label>
+                        <select id="projectType">
+                            <option value="blank">Empty Project</option>
+                            <option value="web">Web Application (HTML/CSS/JS)</option>
+                            <option value="node">Node.js</option>
+                            <option value="python">Python</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" id="cancelNewProject">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="createProject">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M19 14C19.5523 14 20 14.4477 20 15V19C20 20.1046 19.1046 21 18 21H6C4.89543 21 4 20.1046 4 19V15C4 14.4477 4.44772 14 5 14C5.55228 14 6 14.4477 6 15V19H18V15C18 14.4477 18.4477 14 19 14Z" stroke="currentColor" stroke-width="2"/>
+                                <path d="M12 3L12 15M12 3L8 7M12 3L16 7" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                            Create Project
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- GitHub Clone Modal -->
+    <div id="githubModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Clone from GitHub</h3>
+                <button class="close-modal" id="closeGithubModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="githubCloneForm">
+                    <div class="form-group">
+                        <label for="githubUrl">Repository URL</label>
+                        <input type="url" id="githubUrl" placeholder="https://github.com/username/repository" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cloneLocation">Location</label>
+                        <div class="input-with-button">
+                            <input type="text" id="cloneLocation" placeholder="Choose folder..." readonly required>
+                            <button type="button" id="browseCloneLocation">Browse</button>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" id="cancelClone">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="cloneRepo">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                <path d="M21 12V7C21 5.89543 20.1046 5 19 5H13L11 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H11" stroke="currentColor" stroke-width="2"/>
+                                <path d="M15 18L18 21L23 16" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                            Clone Repository
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rocket Launch Animation -->
+    <div id="rocketAnimation" class="rocket-launch-container hidden">
+        <div class="rocket-animation">
+            <div class="rocket">
+                <div class="rocket-body"></div>
+                <div class="rocket-fin rocket-fin-left"></div>
+                <div class="rocket-fin rocket-fin-right"></div>
+                <div class="rocket-window"></div>
+                <div class="rocket-flames">
+                    <div class="flame flame-1"></div>
+                    <div class="flame flame-2"></div>
+                    <div class="flame flame-3"></div>
+                </div>
+            </div>
+        </div>
+        <div class="launch-text">
+            <h2>Launching Project...</h2>
+            <p>Preparing your development environment</p>
+        </div>
+    </div>
+
+    <!-- Project View -->
+    <div id="projectView" class="project-view hidden">
+        <!-- Project Header -->
+        <header class="project-header">
+            <div class="header-left">
+                <button class="back-to-welcome" id="backToWelcome">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <line x1="19" y1="12" x2="5" y2="12" stroke="currentColor" stroke-width="2"/>
+                        <polyline points="12,19 5,12 12,5" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+                <div class="project-info">
+                    <h2 id="currentProjectName">Project Name</h2>
+                    <p id="currentProjectPath">Project Path</p>
                 </div>
             </div>
             <div class="header-right">
-                <button class="btn btn-secondary" id="openProjectBtn">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M3 7V5C3 3.89543 3.89543 3 5 3H9L11 5H19C20.1046 5 21 5.89543 21 7V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V7Z" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                    Open Project
-                </button>
-                <button class="btn btn-icon" id="codeEditorBtn" title="Toggle Code Editor">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <polyline points="16,18 22,12 16,6" stroke="currentColor" stroke-width="2"/>
-                        <polyline points="8,6 2,12 8,18" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                </button>
-                <button class="btn btn-icon" id="terminalBtn" title="Toggle Terminal">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
-                        <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2"/>
-                        <line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                </button>
-                <button class="btn btn-icon" id="settingsBtn">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <button class="btn btn-icon" id="projectSettingsBtn" title="Project Settings">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                         <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
                         <path d="M19.4 15A1.65 1.65 0 0 0 20.25 13.5L21.5 12L20.25 10.5A1.65 1.65 0 0 0 19.4 9L18.75 8.25A1.65 1.65 0 0 0 17.25 7.75L15.75 8.5A1.65 1.65 0 0 0 14.25 7.75L13.5 6.25A1.65 1.65 0 0 0 12 5.5A1.65 1.65 0 0 0 10.5 6.25L9.75 7.75A1.65 1.65 0 0 0 8.25 8.5L6.75 7.75A1.65 1.65 0 0 0 5.25 8.25L4.6 9A1.65 1.65 0 0 0 3.75 10.5L2.5 12L3.75 13.5A1.65 1.65 0 0 0 4.6 15L5.25 15.75A1.65 1.65 0 0 0 6.75 16.25L8.25 15.5A1.65 1.65 0 0 0 9.75 16.25L10.5 17.75A1.65 1.65 0 0 0 12 18.5A1.65 1.65 0 0 0 13.5 17.75L14.25 16.25A1.65 1.65 0 0 0 15.75 15.5L17.25 16.25A1.65 1.65 0 0 0 18.75 15.75L19.4 15Z" stroke="currentColor" stroke-width="2"/>
                     </svg>
@@ -55,207 +201,82 @@
             </div>
         </header>
 
-        <!-- Main Content -->
-        <div class="main-content">
+        <!-- Project Content -->
+        <div class="project-content">
             <!-- Sidebar -->
-            <aside class="sidebar">
+            <aside class="project-sidebar">
                 <div class="sidebar-section">
                     <div class="section-header">
                         <h3>Files</h3>
                         <button class="btn-icon-small" id="refreshFilesBtn" title="Refresh">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                <polyline points="23 4 23 10 17 10" stroke="currentColor" stroke-width="2"/>
-                                <polyline points="1 20 1 14 7 14" stroke="currentColor" stroke-width="2"/>
-                                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" stroke-width="2"/>
+                                <path d="M23 4L23 10L17 10" stroke="currentColor" stroke-width="2" fill="none"/>
+                                <path d="M1 20L1 14L7 14" stroke="currentColor" stroke-width="2" fill="none"/>
+                                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M3.51 15A9 9 0 0 0 18.36 18.36L23 14" stroke="currentColor" stroke-width="2" fill="none"/>
                             </svg>
                         </button>
                     </div>
                     <div class="file-tree" id="fileTree">
                         <div class="empty-state">
-                            <p>Open a project to see files</p>
+                            <p>Loading files...</p>
                         </div>
                     </div>
                 </div>
                 
                 <div class="sidebar-section">
-                    <h3>AI Status</h3>
-                    <div class="model-status">
-                        <div class="model-item">
-                            <div class="model-indicator gemini"></div>
-                            <span>Gemini 1.5 Flash</span>
-                            <span class="status">Ready</span>
+                    <h3>Project Status</h3>
+                    <div class="status-indicators">
+                        <div class="status-item">
+                            <div class="status-dot status-ready"></div>
+                            <span>Development Ready</span>
                         </div>
-                        <div class="model-item">
-                            <div class="model-indicator vapi"></div>
-                            <span>Voice</span>
-                            <span class="status" id="voiceStatus">Ready</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="sidebar-section">
-                    <h3>Recent Changes</h3>
-                    <div class="recent-changes" id="recentChanges">
-                        <div class="empty-state">
-                            <p>No recent changes</p>
+                        <div class="status-item">
+                            <div class="status-dot status-git"></div>
+                            <span id="gitStatus">No Git Repository</span>
                         </div>
                     </div>
                 </div>
             </aside>
 
-            <!-- Editor and Chat Area -->
-            <main class="editor-chat-container">
-                <!-- Editor Section -->
-                <div class="editor-section" id="editorSection" style="display: none;">
-                    <div class="editor-header">
-                        <div class="editor-tabs" id="editorTabs">
-                            <div class="tab-placeholder">No files open</div>
+            <!-- Main Work Area -->
+            <main class="project-main">
+                <div class="work-area">
+                    <div class="welcome-workspace">
+                        <div class="workspace-icon">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+                                <path d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z" stroke="currentColor" stroke-width="2"/>
+                                <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2"/>
+                            </svg>
                         </div>
-                        <div class="editor-actions">
-                            <button class="btn-icon-small" id="saveFileBtn" title="Save" disabled>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                    <path d="M19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H16L21 8V19C21 20.1046 20.1046 21 19 21Z" stroke="currentColor" stroke-width="2"/>
-                                    <polyline points="17,21 17,13 7,13 7,21" stroke="currentColor" stroke-width="2"/>
-                                    <polyline points="7,3 7,8 15,8" stroke="currentColor" stroke-width="2"/>
-                                </svg>
-                            </button>
-                            <button class="btn-icon-small" id="diffViewBtn" title="Show Diff" disabled>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
-                                    <line x1="9" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2"/>
-                                    <line x1="9" y1="15" x2="15" y2="15" stroke="currentColor" stroke-width="2"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="editor-container">
-                        <div class="editor-welcome" id="editorWelcome">
-                            <div class="welcome-content">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+                        <h3>Welcome to your project!</h3>
+                        <p>Select a file from the sidebar to start editing, or use the AI assistant to help you get started.</p>
+                        <div class="quick-actions">
+                            <button class="btn btn-primary" id="createNewFileBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                                     <path d="M14 2H6A2 2 0 0 0 4 4V20A2 2 0 0 0 6 22H18A2 2 0 0 0 20 20V8L14 2Z" stroke="currentColor" stroke-width="2"/>
                                     <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2"/>
-                                    <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2"/>
-                                    <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2"/>
-                                    <polyline points="10,9 9,9 8,9" stroke="currentColor" stroke-width="2"/>
                                 </svg>
-                                <h3>Select a file to start editing</h3>
-                                <p>Choose a file from the sidebar or create a new one</p>
-                            </div>
-                        </div>
-                        <div class="monaco-editor-container" id="monacoContainer" style="display: none;"></div>
-                        <div class="diff-viewer" id="diffViewer" style="display: none;">
-                            <div class="diff-header">
-                                <h4>Code Changes</h4>
-                                <div class="diff-controls">
-                                    <button class="btn-icon-small" id="diffModeBtn" title="Toggle Side-by-Side">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                            <rect x="3" y="3" width="7" height="18" rx="1" stroke="currentColor" stroke-width="2"/>
-                                            <rect x="14" y="3" width="7" height="18" rx="1" stroke="currentColor" stroke-width="2"/>
-                                        </svg>
-                                    </button>
-                                    <button class="btn-secondary btn-small" id="applyChangesBtn">Apply Changes</button>
-                                </div>
-                            </div>
-                            <div class="diff-content" id="diffContent"></div>
-                            <div class="diff-side-by-side" id="diffSideBySide" style="display: none;">
-                                <div class="diff-pane">
-                                    <div class="diff-pane-header">Original</div>
-                                    <div class="diff-pane-content" id="diffOriginal"></div>
-                                </div>
-                                <div class="diff-pane">
-                                    <div class="diff-pane-header">Modified</div>
-                                    <div class="diff-pane-content" id="diffModified"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Chat Section -->
-                <div class="chat-section">
-                    <div class="chat-header">
-                        <h3>AI Assistant</h3>
-                        <div class="chat-actions">
-                            <button class="btn-icon-small" id="clearChatBtn" title="Clear Chat">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                    <polyline points="3,6 5,6 21,6" stroke="currentColor" stroke-width="2"/>
-                                    <path d="M19,6V20A2,2 0 0,1 17,22H7A2,2 0 0,1 5,20V6M8,6V4A2,2 0 0,1 10,2H14A2,2 0 0,1 16,4V6" stroke="currentColor" stroke-width="2"/>
-                                </svg>
+                                New File
                             </button>
-                        </div>
-                    </div>
-                    
-                    <div class="chat-messages" id="chatMessages">
-                        <div class="welcome-message">
-                            <div class="welcome-icon">
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                                    <path d="M21 15A2 2 0 0 1 19 17H7L4 20V6A2 2 0 0 1 6 4H19A2 2 0 0 1 21 6V15Z" stroke="currentColor" stroke-width="2"/>
+                            <button class="btn btn-secondary" id="openTerminalBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+                                    <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2"/>
+                                    <line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="2"/>
                                 </svg>
-                            </div>
-                            <h4>Ready to help with your code!</h4>
-                            <p>Ask me to generate, review, or explain code. I can see your current files and changes.</p>
-                        </div>
-                    </div>
-
-                    <!-- Input Area -->
-                    <div class="chat-input-area">
-                        <div class="voice-controls">
-                            <button class="voice-btn" id="voiceBtn" title="Hold to speak">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                    <path d="M12 1C10.3431 1 9 2.34315 9 4V12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12V4C15 2.34315 13.6569 1 12 1Z" stroke="currentColor" stroke-width="2"/>
-                                    <path d="M19 10V12C19 16.4183 15.4183 20 11 20H13C17.4183 20 21 16.4183 21 12V10H19Z" stroke="currentColor" stroke-width="2"/>
-                                    <path d="M5 10V12C5 16.4183 8.58172 20 13 20H11C6.58172 20 3 16.4183 3 12V10H5Z" stroke="currentColor" stroke-width="2"/>
-                                    <line x1="12" y1="23" x2="12" y2="20" stroke="currentColor" stroke-width="2"/>
-                                </svg>
-                            </button>
-                            <div class="voice-indicator" id="voiceIndicator"></div>
-                        </div>
-                        
-                        <div class="text-input-container">
-                            <textarea 
-                                id="messageInput" 
-                                placeholder="Ask about your code, request changes, or get explanations..."
-                                rows="1"
-                            ></textarea>
-                            <button class="send-btn" id="sendBtn">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                    <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="2"/>
-                                    <polygon points="22,2 15,22 11,13 2,9 22,2" stroke="currentColor" stroke-width="2" fill="currentColor"/>
-                                </svg>
+                                Terminal
                             </button>
                         </div>
                     </div>
                 </div>
             </main>
         </div>
-
-        <!-- Terminal Panel -->
-        <div class="terminal-panel" id="terminalPanel" style="display: none;">
-            <div class="terminal-header">
-                <h4>Terminal</h4>
-                <div class="terminal-actions">
-                    <button class="btn-icon-small" id="clearTerminalBtn" title="Clear">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                            <polyline points="3,6 5,6 21,6" stroke="currentColor" stroke-width="2"/>
-                            <path d="M19,6V20A2,2 0 0,1 17,22H7A2,2 0 0,1 5,20V6M8,6V4A2,2 0 0,1 10,2H14A2,2 0 0,1 16,4V6" stroke="currentColor" stroke-width="2"/>
-                        </svg>
-                    </button>
-                    <button class="btn-icon-small" id="closeTerminalBtn" title="Close">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                            <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/>
-                            <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-            <div class="terminal-content" id="terminalContent"></div>
-        </div>
     </div>
 
     <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
+    <div id="loadingOverlay" class="loading-overlay hidden">
         <div class="loading-spinner"></div>
-        <p>Processing...</p>
+        <p id="loadingText">Processing...</p>
     </div>
 
     <script src="app.js"></script>

@@ -1,15 +1,15 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const chokidar = require('chokidar');
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 const os = require('os');
 require('dotenv').config();
 
 const GeminiService = require('./services/gemini');
 const GeminiCodeService = require('./services/claude');
 
-class VoiceDevAssistant {
+class StratosphereApp {
   constructor() {
     this.mainWindow = null;
     this.currentProject = null;
@@ -17,6 +17,18 @@ class VoiceDevAssistant {
     this.geminiService = new GeminiService();
     this.geminiCodeService = new GeminiCodeService();
     this.terminals = new Map(); // Store active terminal sessions
+    this.recentProjectsPath = path.join(os.homedir(), '.stratosphere', 'recent-projects.json');
+    this.initializeAppData();
+  }
+
+  initializeAppData() {
+    const appDataDir = path.join(os.homedir(), '.stratosphere');
+    if (!fs.existsSync(appDataDir)) {
+      fs.mkdirSync(appDataDir, { recursive: true });
+    }
+    if (!fs.existsSync(this.recentProjectsPath)) {
+      fs.writeFileSync(this.recentProjectsPath, JSON.stringify([]));
+    }
   }
 
   createWindow() {
@@ -31,7 +43,7 @@ class VoiceDevAssistant {
         enableRemoteModule: true
       },
       titleBarStyle: 'hiddenInset',
-      backgroundColor: '#0f0f23',
+      backgroundColor: '#0a0a0f',
       show: false,
       icon: path.join(__dirname, '../assets/icon.png')
     });
@@ -56,7 +68,46 @@ class VoiceDevAssistant {
   }
 
   setupIpcHandlers() {
-    // Open project folder
+    // Create new project
+    ipcMain.handle('create-project', async (event, projectData) => {
+      try {
+        const { name, location, template } = projectData;
+        const projectPath = path.join(location, name);
+        
+        // Create project directory
+        if (!fs.existsSync(projectPath)) {
+          fs.mkdirSync(projectPath, { recursive: true });
+        }
+        
+        // Initialize based on template
+        await this.initializeProjectTemplate(projectPath, template, name);
+        
+        // Add to recent projects
+        await this.addToRecentProjects({
+          name,
+          path: projectPath,
+          createdAt: new Date().toISOString(),
+          template
+        });
+        
+        this.currentProject = projectPath;
+        this.watchProject(this.currentProject);
+        const files = await this.getProjectFiles(this.currentProject);
+        const structure = await this.getProjectStructure(this.currentProject);
+        
+        return {
+          success: true,
+          path: this.currentProject,
+          files,
+          structure
+        };
+      } catch (error) {
+        console.error('Error creating project:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // Open existing project folder
     ipcMain.handle('open-project', async () => {
       const result = await dialog.showOpenDialog(this.mainWindow, {
         properties: ['openDirectory'],
@@ -65,6 +116,14 @@ class VoiceDevAssistant {
 
       if (!result.canceled && result.filePaths.length > 0) {
         this.currentProject = result.filePaths[0];
+        
+        // Add to recent projects
+        await this.addToRecentProjects({
+          name: path.basename(this.currentProject),
+          path: this.currentProject,
+          openedAt: new Date().toISOString()
+        });
+        
         this.watchProject(this.currentProject);
         const files = await this.getProjectFiles(this.currentProject);
         const structure = await this.getProjectStructure(this.currentProject);
@@ -77,6 +136,120 @@ class VoiceDevAssistant {
         };
       }
       return { success: false };
+    });
+
+    // Load specific project from recent projects
+    ipcMain.handle('load-project', async (event, projectPath) => {
+      try {
+        if (!fs.existsSync(projectPath)) {
+          throw new Error('Project directory no longer exists');
+        }
+        
+        this.currentProject = projectPath;
+        
+        // Update recent projects (move to top)
+        await this.addToRecentProjects({
+          name: path.basename(this.currentProject),
+          path: this.currentProject,
+          openedAt: new Date().toISOString()
+        });
+        
+        this.watchProject(this.currentProject);
+        const files = await this.getProjectFiles(this.currentProject);
+        const structure = await this.getProjectStructure(this.currentProject);
+        
+        return {
+          success: true,
+          path: this.currentProject,
+          files,
+          structure
+        };
+      } catch (error) {
+        console.error('Error loading project:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // Get recent projects
+    ipcMain.handle('get-recent-projects', async () => {
+      try {
+        const data = fs.readFileSync(this.recentProjectsPath, 'utf8');
+        const projects = JSON.parse(data);
+        
+        // Filter out projects that no longer exist
+        const validProjects = projects.filter(project => fs.existsSync(project.path));
+        
+        // If we filtered out any, update the file
+        if (validProjects.length !== projects.length) {
+          fs.writeFileSync(this.recentProjectsPath, JSON.stringify(validProjects, null, 2));
+        }
+        
+        return { success: true, projects: validProjects };
+      } catch (error) {
+        console.error('Error getting recent projects:', error);
+        return { success: true, projects: [] };
+      }
+    });
+
+    // GitHub clone repository
+    ipcMain.handle('github-clone', async (event, repoUrl, destinationPath) => {
+      return new Promise((resolve) => {
+        const gitCommand = `git clone ${repoUrl} "${destinationPath}"`;
+        
+        exec(gitCommand, (error, stdout, stderr) => {
+          if (error) {
+            console.error('Git clone error:', error);
+            resolve({ success: false, error: error.message });
+            return;
+          }
+          
+          // Add cloned project to recent projects
+          this.addToRecentProjects({
+            name: path.basename(destinationPath),
+            path: destinationPath,
+            clonedAt: new Date().toISOString(),
+            source: 'github',
+            repoUrl
+          }).then(() => {
+            resolve({ success: true, path: destinationPath });
+          }).catch(() => {
+            resolve({ success: true, path: destinationPath }); // Still successful even if recent projects update fails
+          });
+        });
+      });
+    });
+
+    // Browse for directory
+    ipcMain.handle('browse-directory', async (event, title = 'Select Directory') => {
+      try {
+        const result = await dialog.showOpenDialog(this.mainWindow, {
+          properties: ['openDirectory'],
+          title: title
+        });
+
+        if (!result.canceled && result.filePaths.length > 0) {
+          return { success: true, path: result.filePaths[0] };
+        }
+        return { success: false };
+      } catch (error) {
+        console.error('Error browsing directory:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // Get project templates
+    ipcMain.handle('get-project-templates', async () => {
+      return {
+        success: true,
+        templates: [
+          { id: 'blank', name: 'Blank Project', description: 'Start with an empty project' },
+          { id: 'web', name: 'Web Application', description: 'HTML, CSS, and JavaScript starter' },
+          { id: 'node', name: 'Node.js Project', description: 'Node.js with package.json' },
+          { id: 'react', name: 'React App', description: 'Create React App template' },
+          { id: 'vue', name: 'Vue.js App', description: 'Vue CLI template' },
+          { id: 'python', name: 'Python Project', description: 'Python with virtual environment' }
+        ]
+      };
     });
 
     // Get project context
@@ -380,9 +553,161 @@ class VoiceDevAssistant {
       return { success: false, error: error.message };
     }
   }
+
+  async initializeProjectTemplate(projectPath, template, projectName) {
+    switch (template) {
+      case 'web':
+        // Create basic web structure
+        fs.writeFileSync(path.join(projectPath, 'index.html'), `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${projectName}</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Welcome to ${projectName}</h1>
+    <script src="script.js"></script>
+</body>
+</html>`);
+        fs.writeFileSync(path.join(projectPath, 'style.css'), `body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f5;
 }
 
-const app_instance = new VoiceDevAssistant();
+h1 {
+    color: #333;
+    text-align: center;
+}`);
+        fs.writeFileSync(path.join(projectPath, 'script.js'), `// Welcome to ${projectName}
+console.log('Hello, ${projectName}!');`);
+        break;
+        
+      case 'node':
+        // Create Node.js project
+        const packageJson = {
+          name: projectName.toLowerCase().replace(/\s+/g, '-'),
+          version: '1.0.0',
+          description: '',
+          main: 'index.js',
+          scripts: {
+            start: 'node index.js',
+            test: 'echo "Error: no test specified" && exit 1'
+          },
+          keywords: [],
+          author: '',
+          license: 'ISC'
+        };
+        fs.writeFileSync(path.join(projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
+        fs.writeFileSync(path.join(projectPath, 'index.js'), `// Welcome to ${projectName}
+console.log('Hello, ${projectName}!');
+
+// Your code here`);
+        fs.writeFileSync(path.join(projectPath, 'README.md'), `# ${projectName}
+
+Description of your project.
+
+## Installation
+
+\`\`\`bash
+npm install
+\`\`\`
+
+## Usage
+
+\`\`\`bash
+npm start
+\`\`\``);
+        break;
+        
+      case 'python':
+        // Create Python project
+        fs.writeFileSync(path.join(projectPath, 'main.py'), `#!/usr/bin/env python3
+"""${projectName}
+
+Main entry point for the application.
+"""
+
+def main():
+    print(f"Welcome to ${projectName}!")
+
+if __name__ == "__main__":
+    main()`);
+        fs.writeFileSync(path.join(projectPath, 'requirements.txt'), '# Add your dependencies here\n');
+        fs.writeFileSync(path.join(projectPath, 'README.md'), `# ${projectName}
+
+Description of your Python project.
+
+## Installation
+
+\`\`\`bash
+pip install -r requirements.txt
+\`\`\`
+
+## Usage
+
+\`\`\`bash
+python main.py
+\`\`\``);
+        break;
+        
+      default:
+        // Blank project - just create README
+        fs.writeFileSync(path.join(projectPath, 'README.md'), `# ${projectName}
+
+Your project description here.`);
+    }
+    
+    // Create .gitignore
+    const gitignore = `# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+
+# Environment
+.env
+.venv/
+venv/
+
+# Build outputs
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db`;
+    fs.writeFileSync(path.join(projectPath, '.gitignore'), gitignore);
+  }
+
+  async addToRecentProjects(projectData) {
+    try {
+      const data = fs.readFileSync(this.recentProjectsPath, 'utf8');
+      let projects = JSON.parse(data);
+      
+      // Remove existing entry if it exists (to avoid duplicates)
+      projects = projects.filter(p => p.path !== projectData.path);
+      
+      // Add new entry at the beginning
+      projects.unshift(projectData);
+      
+      // Keep only the last 10 projects
+      projects = projects.slice(0, 10);
+      
+      fs.writeFileSync(this.recentProjectsPath, JSON.stringify(projects, null, 2));
+    } catch (error) {
+      console.error('Error updating recent projects:', error);
+    }
+  }
+}
+
+const app_instance = new StratosphereApp();
 
 app.whenReady().then(() => {
   app_instance.createWindow();

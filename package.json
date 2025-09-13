@@ -1,7 +1,7 @@
 {
-  "name": "voice-dev-assistant",
+  "name": "stratosphere",
   "version": "1.0.0",
-  "description": "Voice-enabled developer tool with AI integration",
+  "description": "Project management and development tool",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
@@ -11,11 +11,10 @@
     "install-deps": "npm install"
   },
   "keywords": [
-    "developer-tool",
-    "voice",
-    "ai",
+    "project-management",
+    "development",
     "electron",
-    "gemini"
+    "stratosphere"
   ],
   "author": "Developer",
   "license": "MIT",
@@ -36,8 +35,8 @@
     "monaco-editor": "^0.44.0"
   },
   "build": {
-    "appId": "com.voicedev.assistant",
-    "productName": "Voice Dev Assistant",
+    "appId": "com.stratosphere.app",
+    "productName": "Stratosphere",
     "directories": {
       "output": "dist"
     },
