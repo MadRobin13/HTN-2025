@@ -463,10 +463,20 @@ class StratosphereApp {
 
   createTerminal(cwd = process.cwd()) {
     try {
-      const shell = os.platform() === 'win32' ? 'cmd' : 'bash';
+      let shell, shellArgs;
+      
+      if (os.platform() === 'win32') {
+        // Use PowerShell on Windows
+        shell = 'powershell.exe';
+        shellArgs = ['-NoExit', '-Command', '-'];
+      } else {
+        shell = process.env.SHELL || 'bash';
+        shellArgs = [];
+      }
+      
       const terminalId = `terminal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      const childProcess = spawn(shell, [], {
+      const childProcess = spawn(shell, shellArgs, {
         cwd: cwd,
         env: process.env,
         stdio: ['pipe', 'pipe', 'pipe']
@@ -493,6 +503,15 @@ class StratosphereApp {
         this.terminals.delete(terminalId);
         if (this.mainWindow) {
           this.mainWindow.webContents.send('terminal-exit', terminalId, exitCode);
+        }
+      });
+
+      // Handle process errors
+      childProcess.on('error', (error) => {
+        console.error('Terminal process error:', error);
+        this.terminals.delete(terminalId);
+        if (this.mainWindow) {
+          this.mainWindow.webContents.send('terminal-error', terminalId, error.message);
         }
       });
 
