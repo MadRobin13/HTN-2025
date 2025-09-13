@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stratosphere - Explore the Universe</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="rocket-container">
+            <div class="rocket">
+                <div class="rocket-body"></div>
+                <div class="rocket-fin left"></div>
+                <div class="rocket-fin right"></div>
+                <div class="rocket-window"></div>
+                <div class="exhaust">
+                    <div class="flame flame-1"></div>
+                    <div class="flame flame-2"></div>
+                    <div class="flame flame-3"></div>
+                </div>
+            </div>
+        </div>
+        <div class="loading-text">
+            <h1>STRATOSPHERE</h1>
+            <p>Launching into the cosmos...</p>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main id="main-content" class="main-content hidden">
+        <!-- Navigation -->
+        <nav class="nav">
+            <div class="logo-container">
+                <div class="logo">
+                    <div class="logo-circle">
+                        <div class="logo-inner-circle"></div>
+                        <div class="logo-dot"></div>
+                    </div>
+                    <span class="logo-text">STRATOSPHERE</span>
+                </div>
+            </div>
+            <div class="nav-controls">
+                <button id="reset-view" class="nav-button">Solar System</button>
+                <button id="info-toggle" class="nav-button">Info</button>
+            </div>
+        </nav>
+
+        <!-- Solar System -->
+        <div id="solar-system" class="solar-system">
+            <div class="sun">
+                <div class="sun-core"></div>
+                <div class="sun-glow"></div>
+            </div>
+
+            <!-- Planet Orbits -->
+            <div class="orbit orbit-1">
+                <div class="planet mercury" data-planet="mercury">
+                    <div class="planet-surface"></div>
+                </div>
+            </div>
+
+            <div class="orbit orbit-2">
+                <div class="planet venus" data-planet="venus">
+                    <div class="planet-surface"></div>
+                </div>
+            </div>
+
+            <div class="orbit orbit-3">
+                <div class="planet earth" data-planet="earth">
+                    <div class="planet-surface"></div>
+                    <div class="planet-atmosphere"></div>
+                </div>
+            </div>
+
+            <div class="orbit orbit-4">
+                <div class="planet mars" data-planet="mars">
+                    <div class="planet-surface"></div>
+                </div>
+            </div>
+
+            <div class="orbit orbit-5">
+                <div class="planet jupiter" data-planet="jupiter">
+                    <div class="planet-surface"></div>
+                    <div class="planet-bands"></div>
+                </div>
+            </div>
+
+            <div class="orbit orbit-6">
+                <div class="planet saturn" data-planet="saturn">
+                    <div class="planet-surface"></div>
+                    <div class="saturn-rings"></div>
+                </div>
+            </div>
+
+            <div class="orbit orbit-7">
+                <div class="planet uranus" data-planet="uranus">
+                    <div class="planet-surface"></div>
+                </div>
+            </div>
+
+            <div class="orbit orbit-8">
+                <div class="planet neptune" data-planet="neptune">
+                    <div class="planet-surface"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Planet Detail Views -->
+        <div id="planet-details" class="planet-details hidden">
+            <button id="back-to-system" class="back-button">← Back to Solar System</button>
+            
+            <div class="planet-content mercury-content" data-planet="mercury">
+                <h2>Mercury</h2>
+                <div class="planet-hero">
+                    <div class="planet-large mercury-large"></div>
+                </div>
+                <div class="planet-info">
+                    <h3>Swift Messenger</h3>
+                    <p>Experience lightning-fast performance with Stratosphere's Mercury engine. Just like the closest planet to the sun, our platform delivers rapid responses and blazing-fast data processing.</p>
+                    <ul class="features">
+                        <li>Millisecond response times</li>
+                        <li>Real-time data synchronization</li>
+                        <li>Instant search capabilities</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="planet-content venus-content" data-planet="venus">
+                <h2>Venus</h2>
+                <div class="planet-hero">
+                    <div class="planet-large venus-large"></div>
+                </div>
+                <div class="planet-info">
+                    <h3>Beautiful Interface</h3>
+                    <p>Like Venus's stunning brilliance in the sky, Stratosphere offers an elegant and intuitive user interface that captivates and inspires productivity.</p>
+                    <ul class="features">
+                        <li>Stunning visual design</li>
+                        <li>Intuitive user experience</li>
+                        <li>Customizable themes</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="planet-content earth-content" data-planet="earth">
+                <h2>Earth</h2>
+                <div class="planet-hero">
+                    <div class="planet-large earth-large"></div>
+                </div>
+                <div class="planet-info">
+                    <h3>Home Base</h3>
+                    <p>Earth represents our foundation - reliable, stable, and life-supporting. Stratosphere provides the solid ground your projects need to thrive and grow.</p>
+                    <ul class="features">
+                        <li>Rock-solid reliability</li>
+                        <li>Comprehensive ecosystem</li>
+                        <li>Global accessibility</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="planet-content mars-content" data-planet="mars">
+                <h2>Mars</h2>
+                <div class="planet-hero">
+                    <div class="planet-large mars-large"></div>
+                </div>
+                <div class="planet-info">
+                    <h3>Innovation Frontier</h3>
+                    <p>Mars embodies exploration and innovation. With Stratosphere, push the boundaries of what's possible and venture into uncharted territories of creativity.</p>
+                    <ul class="features">
+                        <li>Cutting-edge technology</li>
+                        <li>Advanced analytics</li>
+                        <li>Future-ready architecture</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="planet-content jupiter-content" data-planet="jupiter">
+                <h2>Jupiter</h2>
+                <div class="planet-hero">
+                    <div class="planet-large jupiter-large"></div>
+                </div>
+                <div class="planet-info">
+                    <h3>Massive Scale</h3>
+                    <p>Like Jupiter's immense size and gravitational influence, Stratosphere handles enterprise-scale challenges with ease and maintains perfect order in complex systems.</p>
+                    <ul class="features">
+                        <li>Enterprise scalability</li>
+                        <li>Powerful processing</li>
+                        <li>System orchestration</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="planet-content saturn-content" data-planet="saturn">
+                <h2>Saturn</h2>
+                <div class="planet-hero">
+                    <div class="planet-large saturn-large"></div>
+                </div>
+                <div class="planet-info">
+                    <h3>Structured Excellence</h3>
+                    <p>Saturn's magnificent rings represent perfect organization and structure. Stratosphere brings order to chaos with its systematic approach to data management.</p>
+                    <ul class="features">
+                        <li>Structured data flows</li>
+                        <li>Organized workflows</li>
+                        <li>Systematic processes</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="planet-content uranus-content" data-planet="uranus">
+                <h2>Uranus</h2>
+                <div class="planet-hero">
+                    <div class="planet-large uranus-large"></div>
+                </div>
+                <div class="planet-info">
+                    <h3>Unique Perspective</h3>
+                    <p>Uranus rotates on its side, offering a unique perspective. Stratosphere provides fresh insights and innovative approaches to traditional challenges.</p>
+                    <ul class="features">
+                        <li>Innovative solutions</li>
+                        <li>Fresh perspectives</li>
+                        <li>Unique methodologies</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="planet-content neptune-content" data-planet="neptune">
+                <h2>Neptune</h2>
+                <div class="planet-hero">
+                    <div class="planet-large neptune-large"></div>
+                </div>
+                <div class="planet-info">
+                    <h3>Deep Discovery</h3>
+                    <p>Neptune, the distant explorer, represents deep insights and discovery. Stratosphere helps you uncover hidden patterns and profound understanding in your data.</p>
+                    <ul class="features">
+                        <li>Deep analytics</li>
+                        <li>Pattern recognition</li>
+                        <li>Insightful reporting</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating CTA -->
+        <div class="floating-cta">
+            <button class="cta-button">Launch Stratosphere</button>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>

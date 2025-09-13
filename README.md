@@ -1,173 +1,143 @@
-# Voice Dev Assistant
+# Stratosphere - Interactive Solar System Promotional Site
 
-A native desktop application that combines voice interaction with AI-powered development capabilities. Built with Electron, featuring a Warp-like interface powered entirely by Google's free Gemini 1.5 Flash model.
+A unique, immersive promotional website for Stratosphere featuring an interactive solar system with orbiting planets, smooth animations, and a rocket launch loading screen.
 
-## Features
+## 🌟 Features
 
-- 🎤 **Voice Interaction**: Speech-to-text and text-to-speech using Web Speech API
-- 🤖 **Gemini AI Integration**: 
-  - Gemini 1.5 Flash for all AI tasks (free tier)
-  - General conversations and project analysis
-  - Code generation, review, and debugging
-- 📁 **Project Context Awareness**: Automatically understands your project structure
-- 🎨 **Modern UI**: Sleek, Warp-inspired interface with dark theme
-- 🔄 **Real-time File Watching**: Monitors project changes automatically
-- 💬 **Conversation History**: Maintains context across sessions
+### Interactive Solar System
+- **Realistic orbital mechanics**: Planets orbit at different speeds based on their distance from the sun
+- **Click to explore**: Each planet reveals detailed information about Stratosphere features
+- **Smooth zoom transitions**: Seamless animations between solar system and planet detail views
+- **Parallax mouse interaction**: Subtle movement following mouse position for depth
 
-## Prerequisites
+### Immersive Loading Experience  
+- **Rocket launch animation**: Animated rocket with flickering exhaust flames
+- **Progressive loading**: Text and progress bar animations with perfect timing
+- **Smooth transition**: Fades elegantly into the main solar system view
 
-- Node.js (v16 or higher)
-- npm or yarn
-- API keys for:
-  - Google Gemini API (free tier available)
+### Planet-Feature Mapping
+Each planet represents a key Stratosphere feature:
+- **Mercury**: Swift performance and speed
+- **Venus**: Beautiful, intuitive interface  
+- **Earth**: Reliable foundation and ecosystem
+- **Mars**: Innovation and cutting-edge technology
+- **Jupiter**: Massive scale and enterprise capabilities
+- **Saturn**: Structured workflows and organization
+- **Uranus**: Unique perspectives and fresh approaches
+- **Neptune**: Deep analytics and discovery
 
-## Installation
+### Advanced Interactions
+- **Keyboard shortcuts**: Number keys (1-8) for direct planet navigation
+- **Escape key**: Return to solar system from any planet view
+- **Space/Enter**: Launch the main CTA
+- **Touch gestures**: Swipe down to navigate back on mobile
+- **Info overlay**: Help guide with all navigation options
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd voice-dev-assistant
+### Performance & Accessibility
+- **Responsive design**: Optimized for desktop, tablet, and mobile
+- **Performance optimizations**: Animation pausing when tab not visible
+- **Smooth animations**: 60fps CSS animations with hardware acceleration
+- **Touch support**: Full mobile gesture support
+- **Keyboard navigation**: Complete accessibility via keyboard
+
+## 🚀 Quick Start
+
+1. Open `index.html` in any modern web browser
+2. Watch the rocket launch loading sequence
+3. Explore planets by clicking or using number keys 1-8
+4. Press 'Info' in the navigation for controls guide
+5. Click 'Launch Stratosphere' to see the call-to-action modal
+
+## 🎨 Design Philosophy
+
+The site breaks away from traditional promotional designs by:
+- **No scrolling**: Entire experience fits in viewport with zoom interactions
+- **Space theme**: Matches Stratosphere brand with cosmic exploration metaphor
+- **Minimal UI**: Clean black/white color palette with focus on content
+- **Interactive storytelling**: Each planet tells part of the product story
+- **Memorable experience**: Unique solar system concept creates lasting impression
+
+## 🛠 Technical Implementation
+
+### Technologies Used
+- **HTML5**: Semantic structure with accessibility in mind
+- **CSS3**: Advanced animations, grid layouts, and responsive design
+- **Vanilla JavaScript**: No framework dependencies for maximum performance
+- **Modern fonts**: Space Mono and Inter for perfect typography
+
+### Key Technical Features
+- **CSS Grid & Flexbox**: Responsive layout system
+- **CSS Animations**: Hardware-accelerated orbital mechanics
+- **CSS Custom Properties**: Maintainable color system
+- **Event delegation**: Efficient event handling
+- **Smooth transitions**: Cubic-bezier easing for natural motion
+- **Performance monitoring**: Visibility API for battery optimization
+
+### Browser Support
+- **Chrome/Chromium**: Full support
+- **Firefox**: Full support  
+- **Safari**: Full support
+- **Edge**: Full support
+- **Mobile browsers**: Full support with touch optimization
+
+## 📱 Mobile Experience
+
+The site is fully optimized for mobile devices with:
+- **Touch interactions**: Tap planets to explore
+- **Swipe gestures**: Swipe down to go back
+- **Responsive scaling**: Planets and text scale appropriately
+- **Performance optimization**: Reduced animation complexity on smaller screens
+- **Touch feedback**: Visual feedback for all touch interactions
+
+## 🎯 Marketing Integration
+
+The site is designed for easy integration with marketing campaigns:
+- **CTA placement**: Prominent "Launch Stratosphere" button
+- **Feature explanation**: Each planet clearly explains product benefits  
+- **Brand consistency**: Matches Stratosphere logo and design language
+- **Social sharing**: Memorable experience encourages sharing
+- **Analytics ready**: Easy to add tracking for user interactions
+
+## 🔧 Customization
+
+To customize the site:
+1. **Colors**: Edit CSS custom properties in `:root`
+2. **Content**: Update planet information in HTML planet-content sections
+3. **Animations**: Modify CSS animation durations and easing
+4. **Features**: Add new planets or modify existing ones
+5. **Branding**: Replace logo elements and update text
+
+## 🌌 Future Enhancements
+
+Potential improvements for the experience:
+- **Sound effects**: Ambient space sounds and interaction feedback
+- **Particle systems**: Asteroid belts and cosmic dust
+- **Advanced physics**: More realistic orbital mechanics
+- **Planet animations**: Rotating planets with surface details
+- **Constellation backgrounds**: Dynamic star field with constellations
+- **Multi-language support**: Internationalization for global reach
+
+## 📄 File Structure
+
+```
+/
+├── index.html          # Main HTML structure
+├── styles.css          # All CSS animations and styling
+├── script.js           # Interactive functionality
+├── README.md           # This documentation
+└── images/             # Logo and asset directory
 ```
 
-2. Install dependencies:
-```bash
-npm install
-```
+## 🎉 Launch Instructions
 
-3. Set up environment variables:
-```bash
-cp .env.example .env
-```
+Simply open `index.html` in any modern web browser. No build process or server required!
 
-4. Edit `.env` and add your API key:
-```env
-GEMINI_API_KEY=your_gemini_api_key_here
-```
-
-## Getting API Keys
-
-### Gemini API Key (Free)
-1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Create a new API key (free tier available)
-3. Copy the key to your `.env` file
-
-**Note**: Gemini 1.5 Flash is available in the free tier with generous quotas.
-
-## Usage
-
-### Development Mode
-```bash
-npm run dev
-```
-
-### Production Mode
-```bash
-npm start
-```
-
-### Build for Distribution
-```bash
-npm run build
-```
-
-## How to Use
-
-1. **Open a Project**: Click "Open Project" to select your project folder
-2. **Voice Interaction**: 
-   - Hold the microphone button to speak
-   - Release to process your speech
-3. **Text Chat**: Type messages in the input field
-4. **AI Responses**: 
-   - All requests handled by Gemini 1.5 Flash
-   - Intelligent routing for different types of tasks
-5. **Project Analysis**: The AI automatically understands your project structure
-
-## Voice Commands Examples
-
-- "Explain this project structure"
-- "Generate a React component for user authentication"
-- "Review the code in main.js"
-- "Debug the error in my API call"
-- "Refactor this function to be more efficient"
-- "Create unit tests for the user service"
-
-## Architecture
-
-```
-src/
-├── main.js              # Electron main process
-├── services/
-│   ├── gemini.js        # Gemini AI integration
-│   └── claude.js        # Claude AI integration
-└── renderer/
-    ├── index.html       # Main UI
-    ├── styles.css       # Warp-inspired styling
-    └── app.js           # Frontend logic & speech APIs
-```
-
-## Key Technologies
-
-- **Electron**: Native desktop application framework
-- **Gemini 1.5 Flash**: Google's fast, free AI model for all tasks
-- **Web Speech API**: Browser-native speech recognition and synthesis
-- **Chokidar**: File system watching
-- **Marked**: Markdown parsing for AI responses
-
-## Features in Detail
-
-### Voice Recognition
-- Uses browser's built-in Web Speech API
-- Supports continuous listening
-- Real-time transcription
-- Automatic message sending on speech end
-
-### AI Integration
-- **Unified Model**: Uses Gemini 1.5 Flash for all AI interactions
-- **Context Awareness**: Passes project structure and files to AI for better responses
-- **Conversation Memory**: Maintains chat history for context
-- **Free Tier**: Generous free quotas with Google's Gemini API
-
-### Project Management
-- **File Tree**: Visual representation of project structure
-- **Real-time Updates**: Automatically refreshes when files change
-- **Context Injection**: Provides project context to AI models
-
-## Troubleshooting
-
-### Speech Recognition Not Working
-- Ensure you're using a Chromium-based browser engine (built into Electron)
-- Check microphone permissions
-- Verify HTTPS context (required for Web Speech API)
-
-### API Errors
-- Verify your Gemini API key is correct in `.env`
-- Check your API quotas (free tier has generous limits)
-- Ensure network connectivity
-
-### File Watching Issues
-- Check file system permissions
-- Verify the project path is accessible
-- Some network drives may not support file watching
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Support
-
-For issues and questions:
-1. Check the troubleshooting section
-2. Search existing issues
-3. Create a new issue with detailed information
+The site works perfectly as:
+- **Static hosting**: Upload to any web server
+- **GitHub Pages**: Direct deployment from repository  
+- **CDN deployment**: Fast global distribution
+- **Local development**: Works offline without any setup
 
 ---
 
-**Note**: This application requires a free API key from Google Gemini. Make sure to keep your key secure and never commit it to version control.
+**Created for Stratosphere** - Explore the universe of possibilities! 🚀
