@@ -368,6 +368,7 @@ const app_instance = new VoiceDevAssistant();
 
 app.whenReady().then(() => {
   app_instance.createWindow();
+  app_instance.setupIpcHandlers();
   
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
