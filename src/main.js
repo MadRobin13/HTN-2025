@@ -93,10 +93,28 @@ class VoiceDevAssistant {
     // Read file content
     ipcMain.handle('read-file', async (event, filePath) => {
       try {
+        // Try to read as UTF-8 text first
         const content = fs.readFileSync(filePath, 'utf8');
         return { success: true, content };
       } catch (error) {
-        return { success: false, error: error.message };
+        // If UTF-8 reading fails, check if it's a binary file
+        try {
+          // Try to read first few bytes to determine if it's binary
+          const buffer = fs.readFileSync(filePath);
+          const isBinary = buffer.toString('utf8').includes('\uFFFD') || 
+                          !buffer.toString('utf8').trim() ||
+                          buffer.length > 1024 * 1024; // 1MB limit
+          
+          if (isBinary) {
+            return { success: false, error: 'Binary file - not supported for direct editing' };
+          } else {
+            // Try with different encoding
+            const content = fs.readFileSync(filePath, 'latin1');
+            return { success: true, content };
+          }
+        } catch (readError) {
+          return { success: false, error: readError.message };
+        }
       }
     });
 
@@ -368,6 +386,7 @@ const app_instance = new VoiceDevAssistant();
 
 app.whenReady().then(() => {
   app_instance.createWindow();
+  app_instance.setupIpcHandlers();
   
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

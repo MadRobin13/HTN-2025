@@ -1,5 +1,6 @@
 const { ipcRenderer } = require('electron');
 const { marked } = require('marked');
+const path = require('path');
 
 // Monaco Editor will be loaded dynamically
 let monaco;
@@ -60,6 +61,12 @@ class VoiceDevApp {
     this.terminalContent = document.getElementById('terminalContent');
     this.closeTerminalBtn = document.getElementById('closeTerminalBtn');
     this.clearTerminalBtn = document.getElementById('clearTerminalBtn');
+    
+    // Code editor toggle
+    this.codeEditorBtn = document.getElementById('codeEditorBtn');
+    this.editorSection = document.getElementById('editorSection');
+    this.editorChatContainer = document.querySelector('.editor-chat-container');
+    this.isEditorVisible = false;
     
     // Terminal state
     this.currentTerminal = null;
@@ -125,25 +132,96 @@ class VoiceDevApp {
 
   async initializeMonacoEditor() {
     try {
-      // Load Monaco Editor
-      const monacoLoader = require('monaco-editor/esm/vs/loader.js');
-      
-      monacoLoader.config({
-        paths: {
-          vs: '../node_modules/monaco-editor/min/vs'
-        }
-      });
-      
-      monaco = await new Promise((resolve) => {
-        monacoLoader.load(['vs/editor/editor.main'], resolve);
-      });
-      
-      // Set dark theme
-      monaco.editor.setTheme('vs-dark');
-      
+      // Use simple fallback editor instead of Monaco
+      console.log('Using fallback editor instead of Monaco');
+      this.initializeFallbackEditor();
     } catch (error) {
-      console.error('Failed to load Monaco Editor:', error);
+      console.error('Failed to initialize editor:', error);
+      this.initializeFallbackEditor();
     }
+  }
+
+  initializeFallbackEditor() {
+    // Create a simple code editor container
+    const container = document.getElementById('monacoContainer');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="fallback-editor">
+        <div class="editor-toolbar">
+          <span class="file-info" id="currentFileInfo">No file open</span>
+          <div class="editor-controls">
+            <select id="languageSelect" class="language-selector">
+              <option value="plaintext">Plain Text</option>
+              <option value="javascript">JavaScript</option>
+              <option value="html">HTML</option>
+              <option value="css">CSS</option>
+              <option value="json">JSON</option>
+              <option value="python">Python</option>
+              <option value="markdown">Markdown</option>
+            </select>
+          </div>
+        </div>
+        <textarea id="codeEditor" class="code-textarea" spellcheck="false" wrap="off"></textarea>
+        <div class="editor-status">
+          <span id="editorStatus">Ready</span>
+          <span id="cursorPosition">Line 1, Column 1</span>
+        </div>
+      </div>
+    `;
+
+    // Initialize the fallback editor
+    this.codeEditor = document.getElementById('codeEditor');
+    this.currentFileInfo = document.getElementById('currentFileInfo');
+    this.languageSelect = document.getElementById('languageSelect');
+    this.editorStatus = document.getElementById('editorStatus');
+    this.cursorPosition = document.getElementById('cursorPosition');
+
+    // Add event listeners
+    this.setupFallbackEditorEvents();
+    
+    // Mark as initialized
+    this.editorInitialized = true;
+  }
+
+  setupFallbackEditorEvents() {
+    if (!this.codeEditor) return;
+
+    // Track cursor position
+    this.codeEditor.addEventListener('keyup', () => this.updateCursorPosition());
+    this.codeEditor.addEventListener('mouseup', () => this.updateCursorPosition());
+
+    // Handle tab key for indentation
+    this.codeEditor.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = this.codeEditor.selectionStart;
+        const end = this.codeEditor.selectionEnd;
+        const value = this.codeEditor.value;
+        
+        this.codeEditor.value = value.substring(0, start) + '  ' + value.substring(end);
+        this.codeEditor.selectionStart = this.codeEditor.selectionEnd = start + 2;
+      }
+    });
+
+    // Language selector
+    if (this.languageSelect) {
+      this.languageSelect.addEventListener('change', () => {
+        const language = this.languageSelect.value;
+        this.codeEditor.className = `code-textarea language-${language}`;
+      });
+    }
+  }
+
+  updateCursorPosition() {
+    if (!this.codeEditor || !this.cursorPosition) return;
+    
+    const textBeforeCursor = this.codeEditor.value.substring(0, this.codeEditor.selectionStart);
+    const lines = textBeforeCursor.split('\n');
+    const line = lines.length;
+    const column = lines[lines.length - 1].length + 1;
+    
+    this.cursorPosition.textContent = `Line ${line}, Column ${column}`;
   }
 
   setupEventListeners() {
@@ -175,6 +253,7 @@ class VoiceDevApp {
     this.diffModeBtn.addEventListener('click', () => this.toggleDiffMode());
     this.applyChangesBtn.addEventListener('click', () => this.applyChanges());
     this.clearChatBtn.addEventListener('click', () => this.clearChat());
+    this.codeEditorBtn.addEventListener('click', () => this.toggleCodeEditor());
     
     // Terminal controls
     this.terminalBtn.addEventListener('click', () => this.toggleTerminal());
@@ -216,6 +295,23 @@ class VoiceDevApp {
     });
   }
 
+  toggleCodeEditor() {
+    this.isEditorVisible = !this.isEditorVisible;
+    
+    if (this.isEditorVisible) {
+      this.editorSection.style.display = 'flex';
+      this.editorChatContainer.classList.remove('editor-hidden');
+      this.editorChatContainer.style.flexDirection = 'row'; // Ensure side-by-side layout
+    } else {
+      this.editorSection.style.display = 'none';
+      this.editorChatContainer.classList.add('editor-hidden');
+      this.editorChatContainer.style.flexDirection = 'column'; // Reset to column when hidden
+    }
+    
+    // Update button appearance
+    this.codeEditorBtn.classList.toggle('active', this.isEditorVisible);
+  }
+
   async openProject() {
     this.showLoading('Opening project...');
     
@@ -223,7 +319,7 @@ class VoiceDevApp {
       const result = await ipcRenderer.invoke('open-project');
       
       if (result.success) {
-        this.currentProject = result;
+        this.currentProject = { path: result.path };
         this.updateProjectInfo(result.path);
         this.renderFileTree(result.files, result.structure);
         this.addSystemMessage(`Project opened: ${result.path}`);
@@ -243,7 +339,8 @@ class VoiceDevApp {
   }
 
   updateProjectInfo(projectPath) {
-    const projectName = projectPath.split('/').pop();
+    this.currentProject = { path: projectPath };
+    const projectName = projectPath.split('/').pop().split('\\').pop();
     this.projectInfo.innerHTML = `
       <span class="project-name">${projectName}</span>
       <small>${projectPath}</small>
@@ -310,11 +407,39 @@ class VoiceDevApp {
         return;
       }
       
-      const result = await ipcRenderer.invoke('read-file', filePath);
+      // Convert relative path to absolute path using current project path
+      let absolutePath;
+      if (this.currentProject && !require('path').isAbsolute(filePath)) {
+        absolutePath = require('path').join(this.currentProject.path, filePath);
+      } else {
+        absolutePath = filePath;
+      }
+      
+      // Normalize path separators
+      const normalizedPath = absolutePath.replace(/[\/\\]/g, require('path').sep);
+      
+      const result = await ipcRenderer.invoke('read-file', normalizedPath);
       if (result.success) {
-        this.createEditorTab(filePath, result.content);
-        this.originalContents.set(filePath, result.content);
-        this.addRecentChange(filePath, 'opened');
+        this.createEditorTab(normalizedPath, result.content);
+        this.originalContents.set(normalizedPath, result.content);
+        this.addRecentChange(normalizedPath, 'opened');
+      } else {
+        // Check if it's a binary file or unsupported type
+        if (result.error.includes('EBUSY') || result.error.includes('EPERM')) {
+          this.addSystemMessage(`Cannot open file: Access denied to ${filePath}`, 'error');
+        } else if (result.error.includes('ENOENT')) {
+          this.addSystemMessage(`File not found: ${filePath}`, 'error');
+        } else {
+          // Try to determine if it's a binary file
+          const fileExtension = filePath.split('.').pop().toLowerCase();
+          const textFileExtensions = ['txt', 'js', 'ts', 'jsx', 'tsx', 'html', 'css', 'scss', 'json', 'md', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'xml', 'yml', 'yaml', 'sql', 'sh', 'bat', 'ps1'];
+          
+          if (textFileExtensions.includes(fileExtension)) {
+            this.addSystemMessage(`Error opening file: ${result.error}`, 'error');
+          } else {
+            this.addSystemMessage(`Cannot open file: ${filePath} (Unsupported file type)`, 'info');
+          }
+        }
       }
     } catch (error) {
       console.error('Error opening file:', error);
@@ -323,38 +448,39 @@ class VoiceDevApp {
   }
   
   createEditorTab(filePath, content) {
-    if (!monaco) {
-      console.error('Monaco Editor not loaded');
+    // Use fallback editor instead of Monaco
+    if (!this.editorInitialized) {
+      console.error('Fallback editor not initialized');
       return;
     }
     
-    const fileName = filePath.split('/').pop();
+    const fileName = filePath.split(/[\/\\]/).pop();
     const language = this.getLanguageFromFile(fileName);
     
-    // Hide welcome screen
+    // Hide welcome screen and show editor
     this.editorWelcome.style.display = 'none';
     this.monacoContainer.style.display = 'block';
     
-    // Create editor instance
-    const editor = monaco.editor.create(this.monacoContainer, {
-      value: content,
-      language: language,
-      theme: 'vs-dark',
-      fontSize: 13,
-      fontFamily: 'JetBrains Mono, Consolas, monospace',
-      minimap: { enabled: false },
-      scrollBeyondLastLine: false,
-      automaticLayout: true
-    });
+    // Set editor content and language
+    if (this.codeEditor) {
+      this.codeEditor.value = content;
+      this.languageSelect.value = language;
+      this.codeEditor.className = `code-textarea language-${language}`;
+      this.currentFileInfo.textContent = fileName;
+    }
     
-    // Track changes
-    editor.onDidChangeModelContent(() => {
-      this.markFileAsModified(filePath);
-      this.updateRecentChanges(filePath, 'modified');
-    });
+    // Track file changes
+    if (this.codeEditor && !this.codeEditor.hasChangeListener) {
+      this.codeEditor.addEventListener('input', () => {
+        this.markFileAsModified(filePath);
+        this.updateRecentChanges(filePath, 'modified');
+      });
+      this.codeEditor.hasChangeListener = true;
+    }
     
+    // Store file data
     this.openFiles.set(filePath, {
-      editor: editor,
+      editor: this.codeEditor,
       content: content,
       modified: false
     });
@@ -362,6 +488,7 @@ class VoiceDevApp {
     this.activeFile = filePath;
     this.updateEditorTabs();
     this.updateEditorActions();
+    this.updateCursorPosition();
   }
   
   getLanguageFromFile(fileName) {
@@ -514,7 +641,8 @@ class VoiceDevApp {
   async saveFile(filePath) {
     try {
       const fileData = this.openFiles.get(filePath);
-      const content = fileData.editor.getValue();
+      // Get content from fallback editor instead of Monaco
+      const content = this.codeEditor ? this.codeEditor.value : fileData.content;
       
       const result = await ipcRenderer.invoke('write-file', filePath, content);
       if (result.success) {
@@ -654,7 +782,7 @@ class VoiceDevApp {
     
     // Add to top of recent changes
     const firstChild = this.recentChanges.firstChild;
-    if (firstChild && firstChild.classList.contains('empty-state')) {
+    if (firstChild && firstChild.classList && firstChild.classList.contains('empty-state')) {
       this.recentChanges.innerHTML = '';
     }
     
