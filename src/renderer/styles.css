@@ -328,8 +328,33 @@ body {
 .editor-chat-container {
     flex: 1;
     display: flex;
-    flex-direction: column;
+    flex-direction: row; /* Changed from column to row for side-by-side layout */
     overflow: hidden;
+}
+
+/* When editor is hidden, center the chat */
+.editor-chat-container.editor-hidden {
+    justify-content: stretch;
+    align-items: stretch;
+    padding: 0;
+    flex-direction: column; /* Reset to column when editor is hidden */
+}
+
+.editor-chat-container.editor-hidden .chat-section {
+    flex: 1;
+    max-width: none;
+    margin: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 60px);
+}
+
+/* Button active state */
+.btn.active {
+    background: rgba(0, 212, 255, 0.2);
+    color: #00d4ff;
+    border-color: #00d4ff;
 }
 
 /* Editor Section */
@@ -337,16 +362,12 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    min-width: 0; /* Allow flex shrinking */
 }
 
 .editor-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.02);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: none; /* Hide the entire editor header including tabs */
 }
 
 .editor-tabs {
@@ -544,10 +565,19 @@ body {
 
 /* Chat Section */
 .chat-section {
-    height: 400px;
+    flex: 1;
+    min-height: 400px;
     display: flex;
     flex-direction: column;
     background: rgba(255, 255, 255, 0.01);
+    min-width: 0; /* Allow flex shrinking */
+}
+
+/* Override chat section height when editor is hidden */
+.editor-chat-container.editor-hidden .chat-section {
+    height: calc(100vh - 60px); /* Account for header height */
+    min-height: calc(100vh - 60px);
+    max-height: calc(100vh - 60px);
 }
 
 .chat-header {
@@ -577,6 +607,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    min-height: 0; /* Allow flex shrinking */
 }
 
 /* Welcome Message */
@@ -584,9 +615,12 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     text-align: center;
     padding: 20px;
     color: #71717a;
+    flex: 1;
+    min-height: 200px;
 }
 
 .welcome-icon {
@@ -715,6 +749,7 @@ body {
     display: flex;
     align-items: flex-end;
     gap: 10px;
+    flex-shrink: 0; /* Prevent input area from shrinking */
 }
 
 .voice-controls {
@@ -947,6 +982,109 @@ body {
     background: rgba(255, 255, 255, 0.3);
 }
 
+/* Fallback Editor Styles */
+.fallback-editor {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #1e1e1e;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.editor-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.file-info {
+    font-size: 12px;
+    color: #a1a1aa;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.editor-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.language-selector {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e4e4e7;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    outline: none;
+}
+
+.language-selector:focus {
+    border-color: #00d4ff;
+}
+
+.code-textarea {
+    flex: 1;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border: none;
+    outline: none;
+    padding: 16px;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    resize: none;
+    white-space: nowrap;
+    overflow-x: auto;
+    overflow-y: auto;
+    tab-size: 2;
+}
+
+.code-textarea:focus {
+    background: #1e1e1e;
+}
+
+/* Basic syntax highlighting classes */
+.code-textarea.language-javascript,
+.code-textarea.language-json {
+    color: #ce9178;
+}
+
+.code-textarea.language-html {
+    color: #808080;
+}
+
+.code-textarea.language-css {
+    color: #569cd6;
+}
+
+.code-textarea.language-python {
+    color: #dcdcaa;
+}
+
+.code-textarea.language-markdown {
+    color: #c586c0;
+}
+
+.editor-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 11px;
+    color: #71717a;
+}
+
+#cursorPosition {
+    font-family: 'JetBrains Mono', monospace;
+}
+
 /* Responsive Design */
 @media (max-width: 1200px) {
     .sidebar {
@@ -954,7 +1092,18 @@ body {
     }
     
     .chat-section {
-        height: 350px;
+        min-height: 350px;
+        flex: 1;
+    }
+    
+    /* Stack editor and chat vertically on smaller screens */
+    .editor-chat-container {
+        flex-direction: column !important;
+    }
+    
+    .editor-section {
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 }
 
@@ -970,5 +1119,11 @@ body {
     
     .editor-chat-container {
         flex: 1;
+        flex-direction: column !important;
+    }
+    
+    .editor-section {
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
 }
