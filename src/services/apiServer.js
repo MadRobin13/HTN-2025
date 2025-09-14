@@ -135,117 +135,96 @@ class IntegratedApiServer {
       const qwenCliPath = process.env.QWEN_CLI_PATH || 'qwen';
       const timeoutMs = parseInt(process.env.QWEN_TIMEOUT_MS) || 300000; // 5 minutes
       
-      // Check if we have an active Qwen process for this session
-      if (this.activeQwenProcess && !this.activeQwenProcess.killed) {
-        // Use the existing interactive session
-        this.sendToActiveSession(prompt, resolve, reject, timeoutMs);
-        return;
-      }
-      
-      // Start a new interactive Qwen session
-      this.startNewQwenSession(prompt, context, resolve, reject, timeoutMs, qwenCliPath);
+      // For now, let's use a simpler approach with conversation history
+      this.executeQwenWithHistory(prompt, context, resolve, reject, timeoutMs, qwenCliPath);
     });
   }
 
-  sendToActiveSession(prompt, resolve, reject, timeoutMs) {
-    console.log('Sending to active Qwen session:', prompt.substring(0, 50) + '...');
+  async executeQwenWithHistory(prompt, context, resolve, reject, timeoutMs, qwenCliPath) {
+    // Get or initialize conversation history for this session
+    if (!this.sessions.has(this.sessionId)) {
+      this.sessions.set(this.sessionId, {
+        history: [],
+        context: context
+      });
+    }
     
-    let responseBuffer = '';
-    let isCollectingResponse = false;
-    let responseTimeout;
+    const session = this.sessions.get(this.sessionId);
+    session.history.push({ role: 'user', content: prompt });
     
-    // Set up response timeout
-    responseTimeout = setTimeout(() => {
-      reject(new Error('Response timeout from Qwen session'));
-    }, timeoutMs);
-    
-    // Listen for response from the active process
-    const onData = (data) => {
-      const output = data.toString();
-      responseBuffer += output;
-      
-      // Look for response completion indicators
-      if (output.includes('> ') || output.includes('Type /help') || output.includes('$ ')) {
-        clearTimeout(responseTimeout);
-        this.activeQwenProcess.stdout.removeListener('data', onData);
-        
-        // Clean up the response
-        const cleanResponse = this.cleanQwenResponse(responseBuffer);
-        resolve(cleanResponse);
+    // Build full conversation context
+    let fullPrompt = '';
+    if (session.history.length > 1) {
+      fullPrompt = 'Previous conversation:\n';
+      for (const msg of session.history.slice(-6)) { // Keep last 6 messages for context
+        if (msg.role === 'user') {
+          fullPrompt += `User: ${msg.content}\n`;
+        } else {
+          fullPrompt += `Assistant: ${msg.content}\n`;
+        }
       }
-    };
+      fullPrompt += `\nCurrent request: ${prompt}`;
+    } else {
+      fullPrompt = prompt;
+    }
     
-    this.activeQwenProcess.stdout.on('data', onData);
+    console.log('Executing Qwen CLI with history context:', fullPrompt.substring(0, 100) + '...');
     
-    // Send the prompt to the active session
-    this.activeQwenProcess.stdin.write(prompt + '\n');
-  }
-
-  startNewQwenSession(prompt, context, resolve, reject, timeoutMs, qwenCliPath) {
-    console.log('Starting new Qwen session with prompt:', prompt.substring(0, 50) + '...');
+    // Prepare the command arguments
+    let args = ['--prompt', fullPrompt];
     
-    // Prepare arguments for interactive mode
-    let args = ['--prompt-interactive', prompt];
-    
-    // Add context if provided
-    if (context && context.projectPath) {
-      args.push('--include-directories', context.projectPath);
+    // Add context if provided - use workingDirectory or fall back to projectPath
+    const projectDir = context?.workingDirectory || context?.projectPath;
+    if (projectDir) {
+      args.push('--include-directories', projectDir);
     }
     
     // Enable auto-approval for non-interactive use
     args.push('--yolo');
     
-    // Spawn the Qwen CLI process in interactive mode
-    this.activeQwenProcess = spawn('node', [qwenCliPath, ...args], {
-      cwd: process.cwd(),
+    // Determine working directory - prioritize workingDirectory, then projectPath, otherwise current directory
+    const workingDir = context?.workingDirectory || context?.projectPath || process.cwd();
+    console.log('Setting Qwen CLI working directory to:', workingDir);
+    
+    // Spawn the Qwen CLI process
+    const qwenProcess = spawn('node', [qwenCliPath, ...args], {
+      cwd: workingDir,
       env: { ...process.env },
-      stdio: ['pipe', 'pipe', 'pipe']
+      stdio: ['ignore', 'pipe', 'pipe']
     });
 
     let stdout = '';
     let stderr = '';
-    let hasReceivedInitialResponse = false;
     
-    this.activeQwenProcess.stdout.on('data', (data) => {
-      const output = data.toString();
-      stdout += output;
-      
-      // Check if this is the initial response to our prompt
-      if (!hasReceivedInitialResponse && (output.includes('> ') || output.includes('$ ') || output.length > 50)) {
-        hasReceivedInitialResponse = true;
-        const cleanResponse = this.cleanQwenResponse(stdout);
-        resolve(cleanResponse);
-      }
+    qwenProcess.stdout.on('data', (data) => {
+      stdout += data.toString();
     });
     
-    this.activeQwenProcess.stderr.on('data', (data) => {
+    qwenProcess.stderr.on('data', (data) => {
       stderr += data.toString();
     });
     
-    this.activeQwenProcess.on('close', (code) => {
-      console.log('Qwen session ended with code:', code);
-      this.activeQwenProcess = null;
-      
-      if (!hasReceivedInitialResponse) {
-        if (code === 0) {
-          const output = stdout.trim() || 'Request completed successfully.';
-          resolve(output);
-        } else {
-          const error = stderr.trim() || `Qwen CLI exited with code ${code}`;
-          reject(new Error(error));
-        }
+    qwenProcess.on('close', (code) => {
+      if (code === 0) {
+        const output = stdout.trim() || 'Request completed successfully.';
+        // Add assistant response to history
+        session.history.push({ role: 'assistant', content: output });
+        resolve(output);
+      } else {
+        const error = stderr.trim() || `Qwen CLI exited with code ${code}`;
+        reject(new Error(error));
       }
     });
     
-    this.activeQwenProcess.on('error', (error) => {
-      this.activeQwenProcess = null;
+    qwenProcess.on('error', (error) => {
       reject(new Error(`Failed to start Qwen CLI: ${error.message}`));
     });
     
-    // Set timeout for initial response
+    // Set timeout
     setTimeout(() => {
-      if (!hasReceivedInitialResponse) {
-        reject(new Error('Initial response timeout from Qwen CLI'));
+      if (!qwenProcess.killed) {
+        qwenProcess.kill();
+        reject(new Error('Qwen CLI execution timeout'));
       }
     }, timeoutMs);
   }
