@@ -30,6 +30,7 @@
     "chokidar": "^3.5.3",
     "diff": "^5.1.0",
     "dotenv": "^16.3.1",
+    "express": "^5.1.0",
     "highlight.js": "^11.9.0",
     "marked": "^9.1.6",
     "monaco-editor": "^0.44.0"

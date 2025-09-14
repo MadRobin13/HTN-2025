@@ -8,6 +8,7 @@ require('dotenv').config();
 
 const GeminiService = require('./services/gemini');
 const GeminiCodeService = require('./services/claude');
+const IntegratedApiServer = require('./services/apiServer');
 
 class StratosphereApp {
   constructor() {
@@ -16,6 +17,7 @@ class StratosphereApp {
     this.fileWatcher = null;
     this.geminiService = new GeminiService();
     this.geminiCodeService = new GeminiCodeService();
+    this.apiServer = new IntegratedApiServer();
     this.terminals = new Map(); // Store active terminal sessions
     this.recentProjectsPath = path.join(os.homedir(), '.stratosphere', 'recent-projects.json');
     this.initializeAppData();
@@ -893,11 +895,31 @@ Thumbs.db`;
       };
     }
   }
+
+  async startIntegratedApiServer() {
+    try {
+      console.log('🚀 Starting Integrated API Server...');
+      await this.apiServer.start();
+      const port = this.apiServer.getPort();
+      console.log(`✅ Integrated API Server started on port ${port}`);
+      
+      // Update the API URL in case the port changed
+      process.env.QWEN_API_URL = `http://localhost:${port}/api/agent`;
+      
+      return { success: true, port };
+    } catch (error) {
+      console.error('❌ Failed to start Integrated API Server:', error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 const app_instance = new StratosphereApp();
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Start the integrated API server first
+  await app_instance.startIntegratedApiServer();
+  
   app_instance.createWindow();
   app_instance.setupIpcHandlers();
   
@@ -908,8 +930,13 @@ app.whenReady().then(() => {
   });
 });
 
-app.on('window-all-closed', () => {
+app.on('window-all-closed', async () => {
   if (process.platform !== 'darwin') {
+    await app_instance.apiServer.stop();
     app.quit();
   }
+});
+
+app.on('before-quit', async () => {
+  await app_instance.apiServer.stop();
 });
