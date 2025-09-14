@@ -132,8 +132,18 @@ class IntegratedApiServer {
 
   async executeQwenCli(prompt, context) {
     return new Promise((resolve, reject) => {
-      const qwenCliPath = process.env.QWEN_CLI_PATH || 'qwen';
+      // Resolve the qwen CLI path to an absolute path
+      let qwenCliPath = process.env.QWEN_CLI_PATH || path.join(__dirname, '../../qwen-cli-bundle/gemini.js');
+      
+      // If the path from env is relative, resolve it from the app root
+      if (process.env.QWEN_CLI_PATH && !path.isAbsolute(process.env.QWEN_CLI_PATH)) {
+        qwenCliPath = path.resolve(path.join(__dirname, '../..'), process.env.QWEN_CLI_PATH);
+      }
+      
       const timeoutMs = parseInt(process.env.QWEN_TIMEOUT_MS) || 300000; // 5 minutes
+      
+      console.log('Using Qwen CLI path:', qwenCliPath);
+      console.log('Path exists:', fs.existsSync(qwenCliPath));
       
       // For now, let's use a simpler approach with conversation history
       this.executeQwenWithHistory(prompt, context, resolve, reject, timeoutMs, qwenCliPath);

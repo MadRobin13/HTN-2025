@@ -743,7 +743,7 @@ Thumbs.db`;
   // Qwen API Integration Methods
   async submitQwenRequest(prompt, context = {}) {
     try {
-      const API_URL = process.env.QWEN_API_URL || 'http://localhost:3001/api/agent';
+      const API_URL = process.env.QWEN_API_URL || 'http://localhost:3000/api/agent';
       const API_KEY = process.env.QWEN_API_KEY || 'local-dev-secret-change-in-production';
       
       // Prepare context with project information if available
@@ -821,7 +821,7 @@ Thumbs.db`;
 
   async getQwenStatus(requestId) {
     try {
-      const API_URL = process.env.QWEN_API_URL || 'http://localhost:3001/api/agent';
+      const API_URL = process.env.QWEN_API_URL || 'http://localhost:3000/api/agent';
       const API_KEY = process.env.QWEN_API_KEY || 'local-dev-secret-change-in-production';
       
       const response = await fetch(`${API_URL}/requests/${requestId}`, {
@@ -861,7 +861,7 @@ Thumbs.db`;
 
   async checkQwenHealth() {
     try {
-      const API_URL = process.env.QWEN_API_URL || 'http://localhost:3001/api/agent';
+      const API_URL = process.env.QWEN_API_URL || 'http://localhost:3000/api/agent';
       
       const response = await fetch(`${API_URL}/health`, {
         method: 'GET'
@@ -904,8 +904,8 @@ Thumbs.db`;
       const port = this.apiServer.getPort();
       console.log(`✅ Integrated API Server started on port ${port}`);
       
-      // Note: Using external qwen-api server on port 3001 instead
-      // process.env.QWEN_API_URL = `http://localhost:${port}/api/agent`;
+      // Update the API URL to use the integrated server
+      process.env.QWEN_API_URL = `http://localhost:${port}/api/agent`;
       
       return { success: true, port };
     } catch (error) {
