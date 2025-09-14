@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Project management and development tool",
   "main": "src/main.js",
-  "type": "commonjs",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",

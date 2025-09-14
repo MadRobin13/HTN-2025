@@ -170,11 +170,16 @@ class IntegratedApiServer {
       // Send initial status
       res.write(`data: ${JSON.stringify({type: 'status', status: 'processing', message: 'Starting AI response...'})}\n\n`);
       
-      // Resolve the qwen CLI path
-      let qwenCliPath = process.env.QWEN_CLI_PATH || path.join(__dirname, '../../qwen-cli-bundle/gemini.js');
+      // Use the wrapper script that can handle ES modules
+      let qwenCliPath = path.join(__dirname, '../../qwen-cli-wrapper.mjs');
       
-      if (process.env.QWEN_CLI_PATH && !path.isAbsolute(process.env.QWEN_CLI_PATH)) {
-        qwenCliPath = path.resolve(path.join(__dirname, '../..'), process.env.QWEN_CLI_PATH);
+      // Override with env if specified
+      if (process.env.QWEN_CLI_PATH) {
+        if (!path.isAbsolute(process.env.QWEN_CLI_PATH)) {
+          qwenCliPath = path.resolve(path.join(__dirname, '../..'), process.env.QWEN_CLI_PATH);
+        } else {
+          qwenCliPath = process.env.QWEN_CLI_PATH;
+        }
       }
       
       await this.executeQwenWithStreaming(prompt, context, qwenCliPath, res);
@@ -297,12 +302,16 @@ class IntegratedApiServer {
 
   async executeQwenCli(prompt, context) {
     return new Promise((resolve, reject) => {
-      // Resolve the qwen CLI path to an absolute path
-      let qwenCliPath = process.env.QWEN_CLI_PATH || path.join(__dirname, '../../qwen-cli-bundle/gemini.js');
+      // Use the wrapper script that can handle ES modules
+      let qwenCliPath = path.join(__dirname, '../../qwen-cli-wrapper.mjs');
       
-      // If the path from env is relative, resolve it from the app root
-      if (process.env.QWEN_CLI_PATH && !path.isAbsolute(process.env.QWEN_CLI_PATH)) {
-        qwenCliPath = path.resolve(path.join(__dirname, '../..'), process.env.QWEN_CLI_PATH);
+      // Override with env if specified
+      if (process.env.QWEN_CLI_PATH) {
+        if (!path.isAbsolute(process.env.QWEN_CLI_PATH)) {
+          qwenCliPath = path.resolve(path.join(__dirname, '../..'), process.env.QWEN_CLI_PATH);
+        } else {
+          qwenCliPath = process.env.QWEN_CLI_PATH;
+        }
       }
       
       console.log('Using Qwen CLI path:', qwenCliPath);
