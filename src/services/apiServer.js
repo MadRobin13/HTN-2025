@@ -67,7 +67,7 @@ class IntegratedApiServer {
         });
 
         // Process the request asynchronously
-        this.processQwenRequest(requestId, prompt, context);
+        // this.processQwenRequest(requestId, prompt, context); // Disabled for streaming
 
         res.json({
           data: {
@@ -230,6 +230,7 @@ class IntegratedApiServer {
       
       const workingDir = context?.workingDirectory || context?.projectPath || process.cwd();
       console.log('Setting Qwen CLI working directory to:', workingDir);
+      console.log('Context received:', JSON.stringify(context, null, 2));
       
       // Spawn the Qwen CLI process
       const qwenProcess = spawn('node', [qwenCliPath, ...args], {
@@ -255,7 +256,11 @@ class IntegratedApiServer {
       qwenProcess.stderr.on('data', (data) => {
         const errorChunk = data.toString();
         console.error('Qwen CLI stderr:', errorChunk);
-        res.write(`data: ${JSON.stringify({type: 'error', error: errorChunk})}\n\n`);
+        
+        // Only send actual errors, not warnings
+        if (!errorChunk.includes('Warning:') && !errorChunk.includes('DeprecationWarning') && !errorChunk.includes('Failed to load tiktoken')) {
+          res.write(`data: ${JSON.stringify({type: 'error', error: errorChunk})}\n\n`);
+        }
       });
       
       // Handle process completion

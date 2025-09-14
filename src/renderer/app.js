@@ -892,16 +892,9 @@ class StratosphereApp {
     this.showTypingIndicator();
 
     try {
-      // First check if Qwen API is available
-      const healthCheck = await ipcRenderer.invoke('qwen-health-check');
-      
-      if (healthCheck.success) {
-        await this.sendQwenMessage(message);
-      } else {
-        // Fallback to Gemini if Qwen is not available
-        console.warn('Qwen API not available, falling back to Gemini:', healthCheck.error);
-        await this.sendGeminiMessage(message);
-      }
+      // Always use Qwen streaming (disable fallback temporarily)
+      console.log('Using Qwen streaming directly...');
+      await this.sendQwenMessage(message);
     } catch (error) {
       console.error('Chat error:', error);
       this.hideTypingIndicator();
