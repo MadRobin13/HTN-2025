@@ -755,7 +755,6 @@ Thumbs.db`;
       const requestContext = {
         workingDirectory: this.currentProject || process.cwd(),
         projectPath: this.currentProject, // Keep projectPath for backwards compatibility
-        timeout: 60000,
         ...context
       };
 
@@ -910,7 +909,6 @@ Thumbs.db`;
       const requestContext = {
         workingDirectory: this.currentProject || process.cwd(),
         projectPath: this.currentProject,
-        timeout: 60000,
         ...context
       };
 

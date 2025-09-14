@@ -177,9 +177,7 @@ class IntegratedApiServer {
         qwenCliPath = path.resolve(path.join(__dirname, '../..'), process.env.QWEN_CLI_PATH);
       }
       
-      const timeoutMs = parseInt(process.env.QWEN_TIMEOUT_MS) || 300000;
-      
-      await this.executeQwenWithStreaming(prompt, context, qwenCliPath, timeoutMs, res);
+      await this.executeQwenWithStreaming(prompt, context, qwenCliPath, res);
       
     } catch (error) {
       console.error('Streaming error:', error);
@@ -189,7 +187,7 @@ class IntegratedApiServer {
     }
   }
 
-  async executeQwenWithStreaming(prompt, context, qwenCliPath, timeoutMs, res) {
+  async executeQwenWithStreaming(prompt, context, qwenCliPath, res) {
     return new Promise((resolve, reject) => {
       // Get or initialize conversation history
       if (!this.sessions.has(this.sessionId)) {
@@ -288,19 +286,7 @@ class IntegratedApiServer {
         reject(error);
       });
       
-      // Set timeout
-      const timeout = setTimeout(() => {
-        if (!qwenProcess.killed) {
-          qwenProcess.kill();
-          res.write(`data: ${JSON.stringify({type: 'error', error: 'Request timeout'})}\n\n`);
-          res.write('data: [DONE]\n\n');
-          res.end();
-          reject(new Error('Qwen CLI execution timeout'));
-        }
-      }, timeoutMs);
-      
-      // Clear timeout on completion
-      qwenProcess.on('close', () => clearTimeout(timeout));
+      // No timeout - let the agent take as long as it needs
     });
   }
 
@@ -314,17 +300,15 @@ class IntegratedApiServer {
         qwenCliPath = path.resolve(path.join(__dirname, '../..'), process.env.QWEN_CLI_PATH);
       }
       
-      const timeoutMs = parseInt(process.env.QWEN_TIMEOUT_MS) || 300000; // 5 minutes
-      
       console.log('Using Qwen CLI path:', qwenCliPath);
       console.log('Path exists:', fs.existsSync(qwenCliPath));
       
       // For now, let's use a simpler approach with conversation history
-      this.executeQwenWithHistory(prompt, context, resolve, reject, timeoutMs, qwenCliPath);
+      this.executeQwenWithHistory(prompt, context, resolve, reject, qwenCliPath);
     });
   }
 
-  async executeQwenWithHistory(prompt, context, resolve, reject, timeoutMs, qwenCliPath) {
+  async executeQwenWithHistory(prompt, context, resolve, reject, qwenCliPath) {
     // Get or initialize conversation history for this session
     if (!this.sessions.has(this.sessionId)) {
       this.sessions.set(this.sessionId, {
@@ -404,13 +388,7 @@ class IntegratedApiServer {
       reject(new Error(`Failed to start Qwen CLI: ${error.message}`));
     });
     
-    // Set timeout
-    setTimeout(() => {
-      if (!qwenProcess.killed) {
-        qwenProcess.kill();
-        reject(new Error('Qwen CLI execution timeout'));
-      }
-    }, timeoutMs);
+    // No timeout - let the agent work as long as needed
   }
 
   cleanQwenResponse(rawOutput) {
