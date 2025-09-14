@@ -364,6 +364,19 @@ class StratosphereApp {
       this.geminiService.clearHistory();
       return { success: true };
     });
+
+    // Qwen API integration
+    ipcMain.handle('qwen-submit-request', async (event, prompt, context) => {
+      return await this.submitQwenRequest(prompt, context);
+    });
+
+    ipcMain.handle('qwen-get-status', async (event, requestId) => {
+      return await this.getQwenStatus(requestId);
+    });
+
+    ipcMain.handle('qwen-health-check', async () => {
+      return await this.checkQwenHealth();
+    });
   }
 
   async getProjectFiles(projectPath) {
@@ -722,6 +735,162 @@ Thumbs.db`;
       fs.writeFileSync(this.recentProjectsPath, JSON.stringify(projects, null, 2));
     } catch (error) {
       console.error('Error updating recent projects:', error);
+    }
+  }
+
+  // Qwen API Integration Methods
+  async submitQwenRequest(prompt, context = {}) {
+    try {
+      const API_URL = process.env.QWEN_API_URL || 'http://localhost:3000/api/agent';
+      const API_KEY = process.env.QWEN_API_KEY || 'demo-api-key-change-in-production';
+      
+      // Prepare context with project information if available
+      const requestContext = {
+        workingDirectory: this.currentProject || process.cwd(),
+        timeout: 60000,
+        ...context
+      };
+
+      // If we have a current project, add file structure for context
+      if (this.currentProject) {
+        try {
+          const files = await this.getProjectFiles(this.currentProject);
+          const structure = await this.getProjectStructure(this.currentProject);
+          requestContext.projectFiles = files?.slice(0, 20); // Limit for performance
+          requestContext.projectStructure = structure;
+        } catch (error) {
+          console.warn('Could not get project context:', error.message);
+        }
+      }
+
+      const requestBody = {
+        prompt: prompt,
+        context: requestContext,
+        metadata: {
+          source: 'stratosphere-app',
+          timestamp: new Date().toISOString(),
+          project: this.currentProject ? path.basename(this.currentProject) : 'unknown'
+        }
+      };
+
+      console.log('Submitting Qwen request:', { prompt: prompt.substring(0, 100) + '...' });
+
+      const response = await fetch(`${API_URL}/requests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': API_KEY
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      let result;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        const textResponse = await response.text();
+        result = { error: { message: textResponse } };
+      }
+      
+      if (response.ok) {
+        console.log('Qwen request submitted successfully:', result.data.requestId);
+        return {
+          success: true,
+          requestId: result.data.requestId,
+          status: result.data.status
+        };
+      } else {
+        console.error('Qwen request failed:', result);
+        return {
+          success: false,
+          error: result.error?.message || 'Request submission failed'
+        };
+      }
+    } catch (error) {
+      console.error('Error submitting Qwen request:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  async getQwenStatus(requestId) {
+    try {
+      const API_URL = process.env.QWEN_API_URL || 'http://localhost:3000/api/agent';
+      const API_KEY = process.env.QWEN_API_KEY || 'demo-api-key-change-in-production';
+      
+      const response = await fetch(`${API_URL}/requests/${requestId}`, {
+        headers: {
+          'X-API-Key': API_KEY
+        }
+      });
+
+      let result;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        const textResponse = await response.text();
+        result = { error: { message: textResponse } };
+      }
+      
+      if (response.ok) {
+        return {
+          success: true,
+          data: result.data
+        };
+      } else {
+        return {
+          success: false,
+          error: result.error?.message || 'Status check failed'
+        };
+      }
+    } catch (error) {
+      console.error('Error checking Qwen status:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  async checkQwenHealth() {
+    try {
+      const API_URL = process.env.QWEN_API_URL || 'http://localhost:3000/api/agent';
+      
+      const response = await fetch(`${API_URL}/health`, {
+        method: 'GET'
+      });
+
+      let result;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        const textResponse = await response.text();
+        result = { error: { message: textResponse } };
+      }
+      
+      if (response.ok) {
+        return {
+          success: true,
+          status: result.status,
+          data: result
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Health check failed'
+        };
+      }
+    } catch (error) {
+      console.error('Error checking Qwen health:', error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
   }
 }

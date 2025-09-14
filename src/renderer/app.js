@@ -18,6 +18,7 @@ class StratosphereApp {
     this.initializeElements();
     this.setupEventListeners();
     this.setupIpcListeners();
+    this.initializeSettings();
     this.renderRecentProjects();
   }
 
@@ -51,11 +52,21 @@ class StratosphereApp {
     // Chat elements
     this.openChatBtn = document.getElementById('openChatBtn');
     this.chatPanel = document.getElementById('chatPanel');
-    this.closeChatBtn = document.getElementById('closeChatBtn');
-    this.clearChatBtn = document.getElementById('clearChatBtn');
     this.chatMessages = document.getElementById('chatMessages');
     this.chatInput = document.getElementById('chatInput');
     this.sendChatBtn = document.getElementById('sendChatBtn');
+    
+    // Settings elements
+    this.appSettingsBtn = document.getElementById('appSettingsBtn');
+    this.settingsModal = document.getElementById('settingsModal');
+    this.closeSettingsModal = document.getElementById('closeSettingsModal');
+    this.themeSelect = document.getElementById('themeSelect');
+    this.accentColorSelect = document.getElementById('accentColorSelect');
+    this.messageTimestamps = document.getElementById('messageTimestamps');
+    this.sourceLabels = document.getElementById('sourceLabels');
+    this.autoSaveProjects = document.getElementById('autoSaveProjects');
+    this.resetSettings = document.getElementById('resetSettings');
+    this.saveSettings = document.getElementById('saveSettings');
     
     // Form elements
     this.newProjectForm = document.getElementById('newProjectForm');
@@ -97,9 +108,13 @@ class StratosphereApp {
     
     // Chat controls
     this.openChatBtn?.addEventListener('click', () => this.showChat());
-    this.closeChatBtn?.addEventListener('click', () => this.hideChat());
-    this.clearChatBtn?.addEventListener('click', () => this.clearChat());
     this.sendChatBtn?.addEventListener('click', () => this.sendMessage());
+    
+    // Settings controls
+    this.appSettingsBtn?.addEventListener('click', () => this.showSettings());
+    this.closeSettingsModal?.addEventListener('click', () => this.hideSettings());
+    this.saveSettings?.addEventListener('click', () => this.saveSettingsData());
+    this.resetSettings?.addEventListener('click', () => this.resetSettingsData());
     
     // Chat input handling
     this.chatInput?.addEventListener('keydown', (e) => {
@@ -112,17 +127,7 @@ class StratosphereApp {
     // Auto-resize chat input
     this.chatInput?.addEventListener('input', () => this.autoResizeTextarea());
     
-    // Chat suggestions
-    document.addEventListener('click', (e) => {
-      if (e.target.classList.contains('chat-suggestion') || e.target.classList.contains('chat-suggestion-fullscreen')) {
-        const suggestion = e.target.dataset.suggestion;
-        if (suggestion && this.chatInput) {
-          this.chatInput.value = suggestion;
-          this.autoResizeTextarea();
-          this.chatInput.focus();
-        }
-      }
-    });
+    // Chat input handling
     
     // Modal backdrop clicks
     this.newProjectModal?.addEventListener('click', (e) => {
@@ -131,12 +136,19 @@ class StratosphereApp {
     this.githubModal?.addEventListener('click', (e) => {
       if (e.target === this.githubModal) this.hideGithubModal();
     });
+    this.settingsModal?.addEventListener('click', (e) => {
+      if (e.target === this.settingsModal) this.hideSettings();
+    });
     
-    // Escape key to close modals
+    // Escape key to close modals and chat
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        if (this.chatVisible) {
+          this.hideChat();
+        }
         this.hideNewProjectModal();
         this.hideGithubModal();
+        this.hideSettings();
       }
     });
   }
@@ -843,8 +855,8 @@ class StratosphereApp {
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
             <path d="M21 15A2 2 0 0 1 19 17H7L4 20V6A2 2 0 0 1 6 4H19A2 2 0 0 1 21 6V15Z" stroke="currentColor" stroke-width="2"/>
           </svg>
-          <h2>AI Assistant</h2>
-          <p>Hello! I'm your AI assistant. I can help you with your project, answer questions, review code, debug issues, and much more. What would you like to work on today?</p>
+          <h2>AI Agent</h2>
+          <p>Hello! I'm your AI agent. I can help you with your project, answer questions, review code, debug issues, and much more. What would you like to work on today?</p>
         </div>
       `;
     }
@@ -866,6 +878,54 @@ class StratosphereApp {
     // Show typing indicator
     this.showTypingIndicator();
 
+    try {
+      // First check if Qwen API is available
+      const healthCheck = await ipcRenderer.invoke('qwen-health-check');
+      
+      if (healthCheck.success) {
+        await this.sendQwenMessage(message);
+      } else {
+        // Fallback to Gemini if Qwen is not available
+        console.warn('Qwen API not available, falling back to Gemini:', healthCheck.error);
+        await this.sendGeminiMessage(message);
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      this.hideTypingIndicator();
+      this.addMessage('ai', '❌ Sorry, I\'m having trouble connecting right now. Please try again.');
+    }
+
+    this.isTyping = false;
+    this.updateSendButton();
+  }
+
+  async sendQwenMessage(message) {
+    try {
+      console.log('Using Qwen API for message:', message.substring(0, 50) + '...');
+      
+      // Submit request to Qwen API
+      const submitResult = await ipcRenderer.invoke('qwen-submit-request', message);
+      
+      if (!submitResult.success) {
+        this.hideTypingIndicator();
+        this.addMessage('ai', '❌ Failed to submit request: ' + submitResult.error);
+        return;
+      }
+
+      const requestId = submitResult.requestId;
+      console.log('Qwen request submitted:', requestId);
+
+      // Poll for completion
+      await this.pollQwenRequest(requestId);
+      
+    } catch (error) {
+      console.error('Qwen message error:', error);
+      this.hideTypingIndicator();
+      this.addMessage('ai', '❌ Qwen API error: ' + error.message);
+    }
+  }
+
+  async sendGeminiMessage(message) {
     try {
       // Get project context if available
       let context = null;
@@ -891,16 +951,67 @@ class StratosphereApp {
         this.addMessage('ai', '❌ Sorry, I encountered an error: ' + (response.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Chat error:', error);
+      console.error('Gemini error:', error);
       this.hideTypingIndicator();
-      this.addMessage('ai', '❌ Sorry, I\'m having trouble connecting right now. Please try again.');
+      this.addMessage('ai', '❌ Gemini API error: ' + error.message);
     }
-
-    this.isTyping = false;
-    this.updateSendButton();
   }
 
-  addMessage(sender, content) {
+  async pollQwenRequest(requestId, maxAttempts = 60) {
+    let attempts = 0;
+    
+    const poll = async () => {
+      attempts++;
+      
+      try {
+        const statusResult = await ipcRenderer.invoke('qwen-get-status', requestId);
+        
+        if (!statusResult.success) {
+          this.hideTypingIndicator();
+          this.addMessage('ai', '❌ Failed to check request status: ' + statusResult.error);
+          return;
+        }
+
+        const status = statusResult.data.status;
+        console.log(`Qwen request ${requestId} status: ${status} (attempt ${attempts})`);
+
+        if (status === 'completed') {
+          this.hideTypingIndicator();
+          const output = statusResult.data.output || 'Request completed but no output received.';
+          this.addMessage('ai', output, 'qwen');
+          return;
+        } else if (status === 'failed') {
+          this.hideTypingIndicator();
+          const error = statusResult.data.error || 'Request failed for unknown reason.';
+          this.addMessage('ai', '❌ Request failed: ' + error);
+          return;
+        } else if (status === 'pending' || status === 'processing') {
+          // Continue polling
+          if (attempts >= maxAttempts) {
+            this.hideTypingIndicator();
+            this.addMessage('ai', '⏰ Request timed out. The operation is taking longer than expected.');
+            return;
+          }
+          
+          // Wait 2 seconds before next poll
+          setTimeout(poll, 2000);
+        } else {
+          // Unknown status
+          this.hideTypingIndicator();
+          this.addMessage('ai', '❓ Unknown request status: ' + status);
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+        this.hideTypingIndicator();
+        this.addMessage('ai', '❌ Error checking request status: ' + error.message);
+      }
+    };
+
+    // Start polling
+    poll();
+  }
+
+  addMessage(sender, content, source = 'gemini') {
     if (!this.chatMessages) return;
 
     // Remove welcome message if it exists
@@ -915,9 +1026,20 @@ class StratosphereApp {
     const now = new Date();
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
-    messageEl.innerHTML = `
-      <div class="chat-message-bubble">${this.formatChatMessage(content)}</div>
+    // Add source indicator for AI messages (if enabled in settings)
+    const sourceIndicator = (sender === 'ai' && this.settings?.sourceLabels) ? `
+      <div class="chat-message-source">${source === 'qwen' ? 'Agent' : 'Gemini AI'}</div>
+    ` : '';
+    
+    // Add timestamp (if enabled in settings)
+    const timestamp = this.settings?.messageTimestamps ? `
       <div class="chat-message-time">${timeStr}</div>
+    ` : '';
+    
+    messageEl.innerHTML = `
+      ${sourceIndicator}
+      <div class="chat-message-bubble">${this.formatChatMessage(content)}</div>
+      ${timestamp}
     `;
 
     this.chatMessages.appendChild(messageEl);
@@ -927,6 +1049,7 @@ class StratosphereApp {
     this.chatHistory.push({
       sender,
       content,
+      source,
       timestamp: now.toISOString()
     });
   }
@@ -949,7 +1072,6 @@ class StratosphereApp {
     typingEl.id = 'typing-indicator';
     typingEl.innerHTML = `
       <div class="chat-typing">
-        AI is typing
         <div class="chat-typing-dots">
           <div class="chat-typing-dot"></div>
           <div class="chat-typing-dot"></div>
@@ -981,6 +1103,104 @@ class StratosphereApp {
     this.chatInput.style.height = 'auto';
     const newHeight = Math.min(this.chatInput.scrollHeight, 120); // Max 120px
     this.chatInput.style.height = newHeight + 'px';
+  }
+
+  // Settings Methods
+  initializeSettings() {
+    // Load settings from localStorage
+    this.settings = this.loadSettings();
+    this.applySettings();
+  }
+
+  loadSettings() {
+    try {
+      const stored = localStorage.getItem('stratosphere-settings');
+      return stored ? JSON.parse(stored) : this.getDefaultSettings();
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      return this.getDefaultSettings();
+    }
+  }
+
+  getDefaultSettings() {
+    return {
+      theme: 'dark',
+      accentColor: 'white',
+      messageTimestamps: true,
+      sourceLabels: true,
+      autoSaveProjects: true
+    };
+  }
+
+  saveSettingsToStorage() {
+    try {
+      localStorage.setItem('stratosphere-settings', JSON.stringify(this.settings));
+    } catch (error) {
+      console.error('Error saving settings:', error);
+    }
+  }
+
+  applySettings() {
+    // Apply theme
+    document.body.className = '';
+    if (this.settings.theme === 'darker') {
+      document.body.classList.add('theme-darker');
+    }
+    
+    // Apply accent color
+    if (this.settings.accentColor !== 'white') {
+      document.body.classList.add(`accent-${this.settings.accentColor}`);
+    }
+    
+    // Update form values
+    if (this.themeSelect) this.themeSelect.value = this.settings.theme;
+    if (this.accentColorSelect) this.accentColorSelect.value = this.settings.accentColor;
+    if (this.messageTimestamps) this.messageTimestamps.checked = this.settings.messageTimestamps;
+    if (this.sourceLabels) this.sourceLabels.checked = this.settings.sourceLabels;
+    if (this.autoSaveProjects) this.autoSaveProjects.checked = this.settings.autoSaveProjects;
+  }
+
+  showSettings() {
+    if (this.settingsModal) {
+      this.settingsModal.classList.remove('hidden');
+    }
+  }
+
+  hideSettings() {
+    if (this.settingsModal) {
+      this.settingsModal.classList.add('hidden');
+    }
+  }
+
+  saveSettingsData() {
+    // Get values from form
+    this.settings = {
+      theme: this.themeSelect?.value || 'dark',
+      accentColor: this.accentColorSelect?.value || 'white',
+      messageTimestamps: this.messageTimestamps?.checked ?? true,
+      sourceLabels: this.sourceLabels?.checked ?? true,
+      autoSaveProjects: this.autoSaveProjects?.checked ?? true
+    };
+    
+    // Save to localStorage
+    this.saveSettingsToStorage();
+    
+    // Apply settings
+    this.applySettings();
+    
+    // Close settings modal
+    this.hideSettings();
+    
+    console.log('Settings saved:', this.settings);
+  }
+
+  resetSettingsData() {
+    if (confirm('Are you sure you want to reset all settings to default?')) {
+      this.settings = this.getDefaultSettings();
+      this.saveSettingsToStorage();
+      this.applySettings();
+      console.log('Settings reset to default');
+    }
   }
 
   // Utility Methods

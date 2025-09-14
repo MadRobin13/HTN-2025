@@ -200,7 +200,7 @@
                         <polyline points="10,9 9,9 8,9" stroke="currentColor" stroke-width="2"/>
                     </svg>
                 </button>
-                <button class="btn btn-icon" id="projectSettingsBtn" title="Project Settings">
+                <button class="btn btn-icon" id="appSettingsBtn" title="Settings">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                         <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
                         <path d="M19.4 15A1.65 1.65 0 0 0 20.25 13.5L21.5 12L20.25 10.5A1.65 1.65 0 0 0 19.4 9L18.75 8.25A1.65 1.65 0 0 0 17.25 7.75L15.75 8.5A1.65 1.65 0 0 0 14.25 7.75L13.5 6.25A1.65 1.65 0 0 0 12 5.5A1.65 1.65 0 0 0 10.5 6.25L9.75 7.75A1.65 1.65 0 0 0 8.25 8.5L6.75 7.75A1.65 1.65 0 0 0 5.25 8.25L4.6 9A1.65 1.65 0 0 0 3.75 10.5L2.5 12L3.75 13.5A1.65 1.65 0 0 0 4.6 15L5.25 15.75A1.65 1.65 0 0 0 6.75 16.25L8.25 15.5A1.65 1.65 0 0 0 9.75 16.25L10.5 17.75A1.65 1.65 0 0 0 12 18.5A1.65 1.65 0 0 0 13.5 17.75L14.25 16.25A1.65 1.65 0 0 0 15.75 15.5L17.25 16.25A1.65 1.65 0 0 0 18.75 15.75L19.4 15Z" stroke="currentColor" stroke-width="2"/>
@@ -281,56 +281,28 @@
                     </div>
                 </div>
 
-                <!-- AI Chat Panel (Full Screen) -->
+                <!-- AI Chat Panel (Full Screen) -->  
                 <div id="chatPanel" class="chat-panel-fullscreen hidden">
-                    <div class="chat-header">
-                        <div class="chat-title">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                <path d="M21 15A2 2 0 0 1 19 17H7L4 20V6A2 2 0 0 1 6 4H19A2 2 0 0 1 21 6V15Z" stroke="currentColor" stroke-width="2"/>
-                            </svg>
-                            <h3>AI Assistant</h3>
-                        </div>
-                        <div class="chat-controls">
-                            <button class="btn-icon-small" id="clearChatBtn" title="Clear Chat">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                    <path d="M3 6H5H21" stroke="currentColor" stroke-width="2"/>
-                                    <path d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6M19 6V20C19 21.1046 18.1046 22 17 22H7C5.89543 22 5 21.1046 5 20V6H19Z" stroke="currentColor" stroke-width="2"/>
-                                </svg>
-                            </button>
-                            <button class="btn-icon-small" id="closeChatBtn" title="Close Chat">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                                    <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/>
-                                    <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
                     <div class="chat-content-fullscreen">
                         <div id="chatMessages" class="chat-messages-fullscreen">
                             <div class="chat-welcome">
                                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
                                     <path d="M21 15A2 2 0 0 1 19 17H7L4 20V6A2 2 0 0 1 6 4H19A2 2 0 0 1 21 6V15Z" stroke="currentColor" stroke-width="2"/>
                                 </svg>
-                                <h2>AI Assistant</h2>
-                                <p>Hello! I'm your AI assistant. I can help you with your project, answer questions, review code, debug issues, and much more. What would you like to work on today?</p>
+                                <h2>AI Agent</h2>
+                                <p>Hello! I'm your AI agent. I can help you with your project, answer questions, review code, debug issues, and much more. What would you like to work on today?</p>
                             </div>
                         </div>
                     </div>
                     <div class="chat-input-container-fullscreen">
                         <div class="chat-input-wrapper-fullscreen">
-                            <textarea id="chatInput" placeholder="Ask me anything about your project, request code reviews, debugging help, explanations..." rows="1"></textarea>
+                            <textarea id="chatInput" placeholder="Message AI Agent..." rows="1"></textarea>
                             <button id="sendChatBtn" class="chat-send-btn-fullscreen" title="Send message">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                                     <line x1="22" y1="2" x2="11" y2="13" stroke="currentColor" stroke-width="2"/>
                                     <polygon points="22,2 15,22 11,13 2,9" stroke="currentColor" stroke-width="2" fill="currentColor"/>
                                 </svg>
                             </button>
-                        </div>
-                        <div class="chat-suggestions-fullscreen">
-                            <button class="chat-suggestion-fullscreen" data-suggestion="Explain my project structure and architecture">📁 Analyze Project Structure</button>
-                            <button class="chat-suggestion-fullscreen" data-suggestion="Review my code for best practices, bugs, and improvements">🔍 Code Review & Analysis</button>
-                            <button class="chat-suggestion-fullscreen" data-suggestion="Help me debug an issue or error I'm encountering">🐛 Debug & Troubleshoot</button>
-                            <button class="chat-suggestion-fullscreen" data-suggestion="Generate code or help me implement a specific feature">⚡ Code Generation</button>
                         </div>
                     </div>
                 </div>
@@ -359,6 +331,68 @@
                             <p>Select a file to view its contents</p>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Settings</h3>
+                <button class="close-modal" id="closeSettingsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h4>Appearance</h4>
+                    <div class="setting-item">
+                        <label for="themeSelect">Theme</label>
+                        <select id="themeSelect">
+                            <option value="dark">Dark Theme</option>
+                            <option value="darker">Darker Theme</option>
+                            <option value="light">Light Theme (Coming Soon)</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="accentColorSelect">Accent Color</label>
+                        <select id="accentColorSelect">
+                            <option value="white">White (Default)</option>
+                            <option value="blue">Blue</option>
+                            <option value="green">Green</option>
+                            <option value="purple">Purple</option>
+                            <option value="red">Red</option>
+                            <option value="orange">Orange</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4>Chat</h4>
+                    <div class="setting-item">
+                        <label for="messageTimestamps">
+                            <input type="checkbox" id="messageTimestamps" checked>
+                            Show message timestamps
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label for="sourceLabels">
+                            <input type="checkbox" id="sourceLabels" checked>
+                            Show AI source labels
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h4>General</h4>
+                    <div class="setting-item">
+                        <label for="autoSaveProjects">
+                            <input type="checkbox" id="autoSaveProjects" checked>
+                            Auto-save recent projects
+                        </label>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="resetSettings">Reset to Default</button>
+                    <button type="button" class="btn btn-primary" id="saveSettings">Save Settings</button>
                 </div>
             </div>
         </div>
