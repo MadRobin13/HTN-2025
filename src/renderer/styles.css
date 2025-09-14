@@ -1830,3 +1830,36 @@ body::before {
         left: 0;
     }
 }
+
+/* Streaming Message Styles */
+.streaming-message {
+    position: relative;
+}
+
+.streaming-cursor {
+    display: inline-block;
+    color: var(--primary);
+    font-weight: bold;
+    animation: streamingCursor 1s ease-in-out infinite;
+    margin-left: 2px;
+}
+
+@keyframes streamingCursor {
+    0%, 50% {
+        opacity: 1;
+    }
+    51%, 100% {
+        opacity: 0;
+    }
+}
+
+.streaming-message .chat-message-bubble {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 10px rgba(255, 255, 255, 0.05);
+}
+
+.typing-status {
+    font-size: 0.85rem;
+    color: var(--gray-400);
+    font-style: italic;
+}

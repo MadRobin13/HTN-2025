@@ -168,6 +168,19 @@ class StratosphereApp {
       console.log('File removed:', filePath);
       this.refreshFileTree();
     });
+
+    // Streaming event listeners
+    ipcRenderer.on('qwen-stream-chunk', (event, data) => {
+      this.handleStreamChunk(data);
+    });
+
+    ipcRenderer.on('qwen-stream-complete', () => {
+      this.handleStreamComplete();
+    });
+
+    ipcRenderer.on('qwen-stream-error', (event, data) => {
+      this.handleStreamError(data);
+    });
   }
 
   // Recent Projects Management
@@ -901,28 +914,133 @@ class StratosphereApp {
 
   async sendQwenMessage(message) {
     try {
-      console.log('Using Qwen API for message:', message.substring(0, 50) + '...');
+      console.log('Using Qwen streaming API for message:', message.substring(0, 50) + '...');
       
-      // Submit request to Qwen API
-      const submitResult = await ipcRenderer.invoke('qwen-submit-request', message);
+      // Initialize streaming state
+      this.streamingContent = '';
+      this.currentStreamingMessage = null;
       
-      if (!submitResult.success) {
+      // Start streaming request
+      const result = await ipcRenderer.invoke('qwen-stream-request', message);
+      
+      if (!result.success) {
         this.hideTypingIndicator();
-        this.addMessage('ai', '❌ Failed to submit request: ' + submitResult.error);
+        this.addMessage('ai', '❌ Failed to start streaming: ' + result.error);
         return;
       }
-
-      const requestId = submitResult.requestId;
-      console.log('Qwen request submitted:', requestId);
-
-      // Poll for completion
-      await this.pollQwenRequest(requestId);
       
     } catch (error) {
-      console.error('Qwen message error:', error);
+      console.error('Qwen streaming error:', error);
       this.hideTypingIndicator();
-      this.addMessage('ai', '❌ Qwen API error: ' + error.message);
+      this.addMessage('ai', '❌ Qwen streaming error: ' + error.message);
     }
+  }
+
+  handleStreamChunk(data) {
+    switch (data.type) {
+      case 'status':
+        console.log('Stream status:', data.status, data.message);
+        if (data.status === 'processing') {
+          // Keep typing indicator, maybe update with status
+          this.updateTypingIndicator(data.message || 'Processing...');
+        }
+        break;
+        
+      case 'chunk':
+        // Add content to streaming message
+        this.streamingContent += data.content;
+        this.updateStreamingMessage();
+        break;
+        
+      case 'error':
+        console.error('Stream error:', data.error);
+        this.hideTypingIndicator();
+        this.addMessage('ai', '❌ Streaming error: ' + data.error);
+        this.resetStreaming();
+        break;
+    }
+  }
+
+  handleStreamComplete() {
+    console.log('Stream completed');
+    this.hideTypingIndicator();
+    
+    if (this.currentStreamingMessage) {
+      // Finalize the streaming message
+      this.currentStreamingMessage.querySelector('.chat-message-bubble').innerHTML = 
+        this.formatChatMessage(this.streamingContent || 'Response completed.');
+      
+      // Add to history
+      this.chatHistory.push({
+        sender: 'ai',
+        content: this.streamingContent,
+        source: 'qwen',
+        timestamp: new Date().toISOString()
+      });
+    } else if (this.streamingContent) {
+      // Fallback: add as regular message if streaming message was lost
+      this.addMessage('ai', this.streamingContent, 'qwen');
+    }
+    
+    this.resetStreaming();
+  }
+
+  handleStreamError(data) {
+    console.error('Stream error:', data.error);
+    this.hideTypingIndicator();
+    this.addMessage('ai', '❌ Streaming failed: ' + data.error);
+    this.resetStreaming();
+  }
+
+  updateStreamingMessage() {
+    if (!this.streamingContent) return;
+    
+    // Create streaming message element if it doesn't exist
+    if (!this.currentStreamingMessage) {
+      this.hideTypingIndicator();
+      this.currentStreamingMessage = this.createStreamingMessage();
+      this.chatMessages.appendChild(this.currentStreamingMessage);
+    }
+    
+    // Update the content
+    const bubble = this.currentStreamingMessage.querySelector('.chat-message-bubble');
+    if (bubble) {
+      bubble.innerHTML = this.formatChatMessage(this.streamingContent) + '<span class="streaming-cursor">▋</span>';
+    }
+    
+    // Auto-scroll
+    this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+  }
+
+  createStreamingMessage() {
+    const messageEl = document.createElement('div');
+    messageEl.className = 'chat-message chat-message-ai streaming-message';
+    
+    const sourceIndicator = this.settings?.sourceLabels ? `
+      <div class="chat-message-source">Agent</div>
+    ` : '';
+    
+    messageEl.innerHTML = `
+      ${sourceIndicator}
+      <div class="chat-message-bubble"></div>
+    `;
+    
+    return messageEl;
+  }
+
+  updateTypingIndicator(message = 'Processing...') {
+    const typingEl = document.getElementById('typing-indicator');
+    if (typingEl) {
+      const bubble = typingEl.querySelector('.chat-typing');
+      if (bubble && message !== 'Processing...') {
+        bubble.innerHTML = `<div class="typing-status">${message}</div>`;
+      }
+    }
+  }
+
+  resetStreaming() {
+    this.streamingContent = '';
+    this.currentStreamingMessage = null;
   }
 
   async sendGeminiMessage(message) {
@@ -957,59 +1075,7 @@ class StratosphereApp {
     }
   }
 
-  async pollQwenRequest(requestId, maxAttempts = 60) {
-    let attempts = 0;
-    
-    const poll = async () => {
-      attempts++;
-      
-      try {
-        const statusResult = await ipcRenderer.invoke('qwen-get-status', requestId);
-        
-        if (!statusResult.success) {
-          this.hideTypingIndicator();
-          this.addMessage('ai', '❌ Failed to check request status: ' + statusResult.error);
-          return;
-        }
-
-        const status = statusResult.data.status;
-        console.log(`Qwen request ${requestId} status: ${status} (attempt ${attempts})`);
-
-        if (status === 'completed') {
-          this.hideTypingIndicator();
-          const output = statusResult.data.output || 'Request completed but no output received.';
-          this.addMessage('ai', output, 'qwen');
-          return;
-        } else if (status === 'failed') {
-          this.hideTypingIndicator();
-          const error = statusResult.data.error || 'Request failed for unknown reason.';
-          this.addMessage('ai', '❌ Request failed: ' + error);
-          return;
-        } else if (status === 'pending' || status === 'processing') {
-          // Continue polling
-          if (attempts >= maxAttempts) {
-            this.hideTypingIndicator();
-            this.addMessage('ai', '⏰ Request timed out. The operation is taking longer than expected.');
-            return;
-          }
-          
-          // Wait 2 seconds before next poll
-          setTimeout(poll, 2000);
-        } else {
-          // Unknown status
-          this.hideTypingIndicator();
-          this.addMessage('ai', '❓ Unknown request status: ' + status);
-        }
-      } catch (error) {
-        console.error('Polling error:', error);
-        this.hideTypingIndicator();
-        this.addMessage('ai', '❌ Error checking request status: ' + error.message);
-      }
-    };
-
-    // Start polling
-    poll();
-  }
+  // Polling method removed - now using real-time streaming
 
   addMessage(sender, content, source = 'gemini') {
     if (!this.chatMessages) return;
