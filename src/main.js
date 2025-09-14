@@ -379,6 +379,11 @@ class StratosphereApp {
     ipcMain.handle('qwen-health-check', async () => {
       return await this.checkQwenHealth();
     });
+
+    // Qwen streaming request
+    ipcMain.handle('qwen-stream-request', async (event, prompt, context) => {
+      return await this.streamQwenRequest(event, prompt, context);
+    });
   }
 
   async getProjectFiles(projectPath) {
@@ -890,6 +895,99 @@ Thumbs.db`;
       }
     } catch (error) {
       console.error('Error checking Qwen health:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  async streamQwenRequest(event, prompt, context = {}) {
+    try {
+      const API_URL = process.env.QWEN_API_URL || 'http://localhost:3000/api/agent';
+      
+      // Prepare context with project information if available
+      const requestContext = {
+        workingDirectory: this.currentProject || process.cwd(),
+        projectPath: this.currentProject,
+        timeout: 60000,
+        ...context
+      };
+
+      // If we have a current project, add file structure for context
+      if (this.currentProject) {
+        try {
+          const files = await this.getProjectFiles(this.currentProject);
+          const structure = await this.getProjectStructure(this.currentProject);
+          requestContext.projectFiles = files?.slice(0, 20);
+          requestContext.projectStructure = structure;
+        } catch (error) {
+          console.warn('Could not get project context:', error.message);
+        }
+      }
+
+      const requestBody = {
+        prompt: prompt,
+        context: requestContext
+      };
+
+      console.log('Starting streaming Qwen request:', { prompt: prompt.substring(0, 100) + '...' });
+
+      // Use fetch with EventSource-like handling for streaming
+      const response = await fetch(`${API_URL}/stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      // Handle the streaming response
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              
+              if (data === '[DONE]') {
+                event.sender.send('qwen-stream-complete');
+                break;
+              }
+              
+              try {
+                const parsed = JSON.parse(data);
+                event.sender.send('qwen-stream-chunk', parsed);
+              } catch (parseError) {
+                // Ignore parse errors for malformed chunks
+                console.warn('Failed to parse streaming chunk:', data);
+              }
+            }
+          }
+        }
+        
+        return { success: true };
+        
+      } finally {
+        reader.releaseLock();
+      }
+      
+    } catch (error) {
+      console.error('Error in streaming Qwen request:', error);
+      event.sender.send('qwen-stream-error', { error: error.message });
       return {
         success: false,
         error: error.message

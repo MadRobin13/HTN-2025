@@ -104,6 +104,39 @@ class IntegratedApiServer {
         }
       });
     });
+
+    // Streaming endpoint
+    this.app.post('/api/agent/stream', async (req, res) => {
+      try {
+        const { prompt, context } = req.body;
+        
+        if (!prompt) {
+          return res.status(400).json({
+            error: { message: 'Prompt is required' }
+          });
+        }
+
+        // Set up Server-Sent Events
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, X-API-Key',
+        });
+
+        // Start streaming response
+        await this.streamQwenResponse(prompt, context, res);
+        
+      } catch (error) {
+        console.error('Error in streaming request:', error);
+        if (!res.headersSent) {
+          res.status(500).json({
+            error: { message: error.message }
+          });
+        }
+      }
+    });
   }
 
   async processQwenRequest(requestId, prompt, context) {
@@ -128,6 +161,147 @@ class IntegratedApiServer {
       request.status = 'failed';
       request.error = error.message;
     }
+  }
+
+  async streamQwenResponse(prompt, context, res) {
+    try {
+      console.log(`Starting streaming response for prompt:`, prompt.substring(0, 100) + '...');
+      
+      // Send initial status
+      res.write(`data: ${JSON.stringify({type: 'status', status: 'processing', message: 'Starting AI response...'})}\n\n`);
+      
+      // Resolve the qwen CLI path
+      let qwenCliPath = process.env.QWEN_CLI_PATH || path.join(__dirname, '../../qwen-cli-bundle/gemini.js');
+      
+      if (process.env.QWEN_CLI_PATH && !path.isAbsolute(process.env.QWEN_CLI_PATH)) {
+        qwenCliPath = path.resolve(path.join(__dirname, '../..'), process.env.QWEN_CLI_PATH);
+      }
+      
+      const timeoutMs = parseInt(process.env.QWEN_TIMEOUT_MS) || 300000;
+      
+      await this.executeQwenWithStreaming(prompt, context, qwenCliPath, timeoutMs, res);
+      
+    } catch (error) {
+      console.error('Streaming error:', error);
+      res.write(`data: ${JSON.stringify({type: 'error', error: error.message})}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
+    }
+  }
+
+  async executeQwenWithStreaming(prompt, context, qwenCliPath, timeoutMs, res) {
+    return new Promise((resolve, reject) => {
+      // Get or initialize conversation history
+      if (!this.sessions.has(this.sessionId)) {
+        this.sessions.set(this.sessionId, {
+          history: [],
+          context: context
+        });
+      }
+      
+      const session = this.sessions.get(this.sessionId);
+      session.history.push({ role: 'user', content: prompt });
+      
+      // Build full conversation context
+      let fullPrompt = '';
+      if (session.history.length > 1) {
+        fullPrompt = 'Previous conversation:\n';
+        for (const msg of session.history.slice(-6)) {
+          if (msg.role === 'user') {
+            fullPrompt += `User: ${msg.content}\n`;
+          } else {
+            fullPrompt += `Assistant: ${msg.content}\n`;
+          }
+        }
+        fullPrompt += `\nCurrent request: ${prompt}`;
+      } else {
+        fullPrompt = prompt;
+      }
+      
+      console.log('Executing Qwen CLI with streaming:', fullPrompt.substring(0, 100) + '...');
+      
+      // Prepare command arguments
+      let args = ['--prompt', fullPrompt];
+      
+      const projectDir = context?.workingDirectory || context?.projectPath;
+      if (projectDir) {
+        args.push('--include-directories', projectDir);
+      }
+      
+      args.push('--yolo');
+      
+      const workingDir = context?.workingDirectory || context?.projectPath || process.cwd();
+      console.log('Setting Qwen CLI working directory to:', workingDir);
+      
+      // Spawn the Qwen CLI process
+      const qwenProcess = spawn('node', [qwenCliPath, ...args], {
+        cwd: workingDir,
+        env: { ...process.env },
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+
+      let fullOutput = '';
+      let lastChunkTime = Date.now();
+      
+      // Stream stdout in real-time
+      qwenProcess.stdout.on('data', (data) => {
+        const chunk = data.toString();
+        fullOutput += chunk;
+        
+        // Send chunk to client
+        res.write(`data: ${JSON.stringify({type: 'chunk', content: chunk})}\n\n`);
+        lastChunkTime = Date.now();
+      });
+      
+      // Handle stderr
+      qwenProcess.stderr.on('data', (data) => {
+        const errorChunk = data.toString();
+        console.error('Qwen CLI stderr:', errorChunk);
+        res.write(`data: ${JSON.stringify({type: 'error', error: errorChunk})}\n\n`);
+      });
+      
+      // Handle process completion
+      qwenProcess.on('close', (code) => {
+        if (code === 0) {
+          const cleanedOutput = this.cleanQwenResponse(fullOutput);
+          session.history.push({ role: 'assistant', content: cleanedOutput });
+          
+          res.write(`data: ${JSON.stringify({type: 'status', status: 'completed', message: 'Response completed successfully'})}\n\n`);
+          res.write('data: [DONE]\n\n');
+          res.end();
+          resolve();
+        } else {
+          const error = `Qwen CLI exited with code ${code}`;
+          res.write(`data: ${JSON.stringify({type: 'error', error: error})}\n\n`);
+          res.write('data: [DONE]\n\n');
+          res.end();
+          reject(new Error(error));
+        }
+      });
+      
+      // Handle process errors
+      qwenProcess.on('error', (error) => {
+        console.error('Qwen process error:', error);
+        res.write(`data: ${JSON.stringify({type: 'error', error: `Failed to start Qwen CLI: ${error.message}`})}\n\n`);
+        res.write('data: [DONE]\n\n');
+        res.end();
+        reject(error);
+      });
+      
+      // Set timeout
+      const timeout = setTimeout(() => {
+        if (!qwenProcess.killed) {
+          qwenProcess.kill();
+          res.write(`data: ${JSON.stringify({type: 'error', error: 'Request timeout'})}\n\n`);
+          res.write('data: [DONE]\n\n');
+          res.end();
+          reject(new Error('Qwen CLI execution timeout'));
+        }
+      }, timeoutMs);
+      
+      // Clear timeout on completion
+      qwenProcess.on('close', () => clearTimeout(timeout));
+    });
   }
 
   async executeQwenCli(prompt, context) {
